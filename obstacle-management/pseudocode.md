@@ -40,7 +40,18 @@ FUNCTION stop_motors:
 
 FUNCTION check_colours:
   WHILE TRUE
-    Capture an frame
+    Capture an frame from the webcam
+    Convert the frame from BGR to HSV colour format (Makes it easier to detect colours HSV (Hue, Saturation, Value)
+    DEFINE lower and upper limits for detecting red, green and pink colours
+    CREATE masks that isolates areas that match the ranges n the lower and upper limits of the red, green and pink colours 
+    CREATE a 5x5 matrix for image dilation to make it easier to analyse images.
+    APPLY dilation to each mask to reduce noise and enhance object shapes
+    FUNCTION detect_color(mask, color_name, color_bgr):
+      FIND 
+
+
+    
+    
 
 
 
