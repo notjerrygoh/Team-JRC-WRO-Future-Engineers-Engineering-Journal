@@ -11,6 +11,9 @@ This repository contains engineering materials of a self-driven vehicle's model 
 * `schemes` contains one or several schematic diagrams in form of JPEG, PNG or PDF of the electromechanical components illustrating all the elements (electronic components and motors) used in the vehicle and how they connect to each other.
 * `src` contains code of control software for all components which were programmed to participate in the competition
 * `models` is for the files for models used by 3D printers, laser cutting machines and CNC machines to produce the vehicle elements. If there is nothing to add to this location, the directory can be removed.
+* `mobility-management` contains the discussion for mobility management on how the motors are selected and implemented into our vehicle, as well as the vehicle chassis design selection and how the components are mounted onto the vehicle.
+* `power-and-sense-management` contains the discussion for power and sense management on how the different power supply sources, as well as the sensors to detect objects are selected and implemented into our vehicle.
+* `obstacle-management` contains the discussion for obstacle management on the vehicle's logic when it comes to avoiding obstacles and parking, and contains files of the pseudocode.
 * `other` is for other files which can be used to understand how to prepare the vehicle for the competition. It may include documentation how to connect to a SBC/SBM and upload files there, datasets, hardware specifications, communication protocols descriptions etc. If there is nothing to add to this location, the directory can be removed.
 
 ## Introduction
