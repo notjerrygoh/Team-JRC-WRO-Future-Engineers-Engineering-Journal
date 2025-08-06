@@ -1,7 +1,7 @@
-Engineering materials
+Team JRC's Engineering Journal
 ====
 
-This repository contains engineering materials of a self-driven vehicle's model participating in the WRO Future Engineers competition in the season 2025.
+Hello! We are team JRC, consisting of Jeremiah, Colin and Rey from Ngee Ann Polytechnic. We are participating in the World Robot Olympiad (WRO) Future Engineers competition in the season 2025. This repository contains engineering materials of the automated vehicle's model, as well as our engineering journal, where we document our experiences and the engineering design process even as we design and build our robot.
 
 ## Content
 
