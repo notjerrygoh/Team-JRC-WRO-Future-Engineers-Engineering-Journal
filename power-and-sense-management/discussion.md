@@ -1,1 +1,2 @@
-
+# Power and sense management
+For the power source of the robot, we have opted to use a power bank to power the raspberry pi as it has enough power for it. The Raspberry Pi requires 15W to run. We have also gotten a USB-C cable to connect the power supply to the raspberry pi. To complete the challenge, we have selected the HC-SR04 Ultrasonic sensor to detect obstacles that are around the vehicle while it is running. The ultrasonic sensors are used because they are inexpensive compared to other types of sensors 
