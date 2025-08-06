@@ -7,3 +7,4 @@ During the planning and design phases, we decided as a team to create a 4-wheele
 ## Vehicle Chassis:
 When designing the robot, we decided to go for our current design of the vehicle chassis, the 2WD robot chassis, made out of a shape of the , and purchased it online through an e-commerce platform, as it is lightweight (insert the weight of the chassis without any components) and it is spacious enough for us to mount our components, such as the motors, servos and ultrasonic sensors, our microcontroller, the Raspberry Pi 4 and the power supplies, which are our 9V battery and power bank. 
 
+Insert 
