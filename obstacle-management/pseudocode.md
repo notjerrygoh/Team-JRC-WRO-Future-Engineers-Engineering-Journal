@@ -38,7 +38,9 @@ FUNCTION stop_motors:
   SET M1B as LOW
   SET M2B as LOW
 
-FUNCTION check_colours
+FUNCTION check_colours:
+  WHILE TRUE
+    Capture an frame
 
 
 
