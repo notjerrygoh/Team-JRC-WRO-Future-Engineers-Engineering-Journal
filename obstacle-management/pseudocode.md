@@ -33,10 +33,12 @@ FUNCTION start_motors:
   SET M2A as HIGH
   SET PWM Duty cycle of M1B to 200 
   SET PWN DUty Cycle of M2B to 200
+ENDFUNCTION
 
 FUNCTION stop_motors:
   SET M1B as LOW
   SET M2B as LOW
+ENDFUNCTION
 
 FUNCTION check_colours:
   WHILE TRUE
@@ -47,8 +49,25 @@ FUNCTION check_colours:
     CREATE a 5x5 matrix for image dilation to make it easier to analyse images.
     APPLY dilation to each mask to reduce noise and enhance object shapes
     FUNCTION detect_color(mask, color_name, color_bgr):
-      FIND 
+      FIND contours in the colour mask
+      FOR contour in contours:
+        area = calculate area of the contours
+        IF area > 300
+          GET the rectangle boundary of the object (x, y, width, height)
+          DRAW a rectangle around the object on the image
+          LABEL the object with its color name
+          RETURN True 
+      RETURN False
+      IF red object detected:
+        red_found = '1'
+      IF green object detected:
+        green_found = '2'
+  RETURN red_found, green_found, pink_found
+ENDFUNCTION
 
+FUNCTION set_angle(angle):
+  duty = 2 + (angle / 18)
+  
 
     
     
