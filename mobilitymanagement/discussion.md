@@ -1,4 +1,9 @@
 # Mobility Management
-# ====
+This file contains the discussion of how we chose the motors and servos used for the robot and implemented them into the robot, as well as how the vehicle chassis design was chosen and how the components were mounted onto the vehicle chassis.
 
+## Driving Mechanism: Using Motors and Servos to drive the vehicle
+During the planning and design phases, we decided as a team to create a 4-wheeled drive car, with the two front wheels used to steer the vehicle left and right, and the rear two wheels used to drive the vehicle forward and backwards. As a team, we ultimately decided to use a 180 degree 9 gram servo as part of the steering mechanism, as the servo was not only lightweight (9 grams), and easy to use, but also because of its ability to turn 180 to the left or to the right, which ensures that the vehicle can steer to the left or to the right to avoid the different obstacles in its path. Furthermore, we also decided to use 2 5V (5 volt) DC (direct current motors to drive the vehicle, as the DC motors have an infinite turning range, thus being able to drive the vehicle for long durations. However, since the DC motors have a large operating voltage and current, we used a H-bridge Motor Driver to drive the motors so that it will be able to drive the vehicle to move forwards and backwards, as without the driver, the motors would not be able to operate by only using a raspberry pi 4, since its operating voltage is higher than the output voltage which the raspberry pi 4 can provide to the motors.
+
+## Vehicle Chassis:
+When designing the robot, we decided to go for our current design of the vehicle chassis, the 2WD robot chassis, made out of a shape of the , and purchased it online through an e-commerce platform, as it is lightweight (insert the weight of the chassis without any components) and it is spacious enough for us to mount our components, such as the motors, servos and ultrasonic sensors, our microcontroller, the Raspberry Pi 4 and the power supplies, which are our 9V battery and power bank. 
 
