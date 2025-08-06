@@ -67,6 +67,28 @@ ENDFUNCTION
 
 FUNCTION set_angle(angle):
   duty = 2 + (angle / 18)
+  SET servo_pin to HIGH
+  Change the duty cycle such that it changes the turning angle
+  Wait for 3s
+  SET servo_pin to LOW
+  Set PWM duty cycle to 0
+
+WHILE TRUE:
+  start_motors()
+  Capture a video frame from the webcam
+  
+  check_colour(imageFrame)
+    IF check_colour(imageFrame) == '1':
+      set_angle(0)
+    ELIF check_colour(imageFrame) == '2':
+      set_angle(180)
+    ELSE:
+      set_angle(90)
+    IF the 'q' key is pressed:
+              EXIT the loop
+  ELSE:
+      WAIT for 0.1 seconds (no object detected)
+  ENDWHILE
   
 
     
