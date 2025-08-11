@@ -1,4 +1,3 @@
-# Pseudocode
 IMPORT Numerical Python library (Numpy)
 IMPORT computer vision library (OpenCV)
 IMPORT DistanceSensor class from GPIO Zero library for ultrasonic sensors
@@ -44,7 +43,14 @@ FUNCTION check_colours:
   WHILE TRUE
     Capture an frame from the webcam
     Convert the frame from BGR to HSV colour format (Makes it easier to detect colours HSV (Hue, Saturation, Value)
-    DEFINE lower and upper limits for detecting red, green and pink colours
+    DEFINE lower/upper HSV limits for red
+      Range 1: H = 0–10, S = 120–255, V = 70–255
+      Range 2: H = 170–180, S = 120–255, V = 70–255
+    COMBINE both red ranges into red_mask
+    DEFINE HSV lower and upper limits for green
+      H = 25–102, S = 52–255, V = 72–255
+    DEFINE HSV lower and upper limits for pink
+      H = 145–165, S = 80–255, V = 80–255
     CREATE masks that isolates areas that match the ranges n the lower and upper limits of the red, green and pink colours 
     CREATE a 5x5 matrix for image dilation to make it easier to analyse images.
     APPLY dilation to each mask to reduce noise and enhance object shapes
@@ -72,6 +78,7 @@ FUNCTION set_angle(angle):
   Wait for 3s
   SET servo_pin to LOW
   Set PWM duty cycle to 0
+ENDFUNCTIOMN
 
 WHILE TRUE:
   start_motors()
