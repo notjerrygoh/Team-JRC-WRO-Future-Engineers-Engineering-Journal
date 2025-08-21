@@ -130,10 +130,10 @@ def motorSpeed(speed):
         pi.set_PWM_dutycycle(M1A, 0)
         pi.set_PWM_dutycycle(M1B, 0)
 
-# Main loop variables
+
 lap_count = 0
 on_orange_line = False
-orange_sequence = None  # (steps, current_step, start_time)
+orange_sequence = None  
 servo_sequence = None  
 stable_counter = 0  
 
@@ -149,7 +149,7 @@ try:
 
 
             if crossed and orange_sequence is None:
-                orange_sequence = ([(1500,3), (1000,3), (1500,0)], 0, current_time)  # Move forward 2s, turn 2s, straighten
+                orange_sequence = ([(1500,3), (1000,3), (1500,0)], 0, current_time)
                 print(f"Lap {lap_count} completed")
 
 
@@ -245,3 +245,4 @@ finally:
     motorSpeed(0)
     pwm.set_servo_pulsewidth(servo_pin, 0)
     cv2.destroyAllWindows()
+
