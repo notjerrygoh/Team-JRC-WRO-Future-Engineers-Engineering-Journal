@@ -9,7 +9,8 @@ This directory contains the files for models used by 3D printers and laser cutti
 2. Back wheel
 3. Front axle
 4. Back Axle
+5. Block to hold motor (ensures that front and back wheels are leveled)
 
 ## Laser Cutting Elements:
 ====
-1. Motor and Axle connector
+1. Motor and Back Axle connector
