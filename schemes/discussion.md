@@ -20,7 +20,7 @@ M1B: 24
 
 Both M1A and M1B are controlled via PWM duty cycles, allowing the robot to move forward, backward, or stop with varying speeds.
 
-## Raspberry Pi
+## Pi Camera
 The PiCamera is connected physically to the Picamera slot in the Raspberry Pi, accessed through the Picamera2 library, captures live video frames, which are processed with OpenCV to detect colors: orange lines for lap counting, pink for parking zones, and red/green the coloured blocks. Each detection routine converts the frame to HSV, applies color thresholds, cleans up masks, and uses contours to decide whether a target color is present and how the robot should respond.
 
 All these feed into the main loop: the Raspberry Pi continuously reads camera frames and ultrasonic distances, decides what situation the robot is in (lap crossing, obstacle detection or parking), and then sends PWM commands to the motors and servo to execute the correct action. 
