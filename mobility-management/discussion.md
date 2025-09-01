@@ -1,8 +1,8 @@
 # Mobility Management
-This file contains the discussion of how we chose the motors and servos used for the robot and implemented them into the robot, as well as how the vehicle chassis design was chosen and how the components were mounted onto the vehicle chassis.
+This file contains the discussion of how we chose the motors and servos used for the robot and implemented them into the robot, as well as how the vehicle chassis design was chosen and the assembly process of the vehicle
 
 ## Driving Mechanism
-====
+
 ### Using Servos to turn the vehicle
 During the planning and design phases, we decided as a team to create a back-wheel drive car, with the two front wheels used to steer the vehicle left and right, and the rear two wheels used to drive the vehicle forward and backwards. As a team, we decided to use a 180 degree 12 gram servo (MG90S) as part of the steering mechanism, as the servo was not only lightweight (12 grams), but because when 4.8V is supplied to the motor, assuming there is no load, the servo had a fast speed of 60 degrees for every 0.1 seconds, which is approximately 327 rpm (revolutions per minute). The servo also produces a torque of 1.8 kg.cm, which is approximately 0.1765 N.m (newton-meters). Thus, by using the following formula:
                                      
@@ -14,20 +14,20 @@ Therefore, assuming 80% efficiency when the servo turns to the left and the righ
 We also decided to use a 5V (5 volt) DC (direct current) motor to drive the vehicle, as DC motors have an infinite turning range, thus being able to drive the vehicle for long durations. However, since the DC motors have a large operating voltage and current, we also used a H-bridge Motor Driver to drive the motors so that it will be able to drive the vehicle to move forwards and backwards, as without the driver, the motors would not be able to operate by only using a raspberry pi 4, since its operating voltage is higher than the output voltage which the raspberry pi 4 can provide to the motors.
 
 ## Vehicle Chassis Assembly
-====
-### Designing Phase
+### Step 1: Designing Phase
 When designing the robot, we decided to go for our current design of the vehicle chassis, the 2WD robot chassis, made out of acrylic material, and purchased it online through an e-commerce platform, as it is lightweight (insert the weight of the chassis without any components) and we originally thought that the design was spacious enough for us to mount our components, which are the motors, servos, ultrasonic sensors and cameras, our microcontroller, the Raspberry Pi 4 and the power supplies, which are our 9V battery and power bank.
 
-### Vehicle Frame Assembly
+### Step 2: Vehicle Frame Assembly
 When assembling the vehicle together, we considered the amount of space that we needed to the motors, servos, ultrasonic sensors and cameras, our microcontroller, the Raspberry Pi 4, the breadboard and the power supplies, which are our 9V battery and power bank.. We realised that our current design would not be able to fit all the components together, and using a bigger chassis would exceed the competition limit of 30 by 20 cm of the vehicle chassis. Thus, to resolve the problem, we decided to have a second layer with the exact same design as the first layer and connected it together using screws, which will give enough space for the components to be mounted onto the vehicle chassis. We attached 2 screws at the front of the vehicle chassis, another 2 screws at the back of the vehicle chassis and finally 1 screw at the middle of the vehicle chassis, which will be able to support the weight of the components on the 2nd layer. 
 
-### Back-Wheel Designing and Assembly Process
+### Step 3: Back-Wheel Designing and Assembly Process
 To attach the wheels and the axle together, we used hot glue to ensure that they stick together for a long time. This also makes it less susceptible to wear and tear during testing as the wheels would not fall off as easily. We then attached the axle to the DC motor by 3D printing connectors of the same size as the axle so that the axle would fit snugly with the DC motor. 
 
-### Front-Wheel Designing and Assembly Process
+### Step 4: Front-Wheel Designing and Assembly Process
 For the servo motor, we hot glued the axle to the servo mechanism such that when the servo turns, the axle would turn as well, allowing the robot to move in different directions when encountering on obstacles.
 
-### Final Vehicle Assembly (Mounting components onto the vehicle)
+### Step 5: Final Vehicle Assembly (Mounting components onto the vehicle)
 Additionally, we also decided to place the ultrasonic sensors, H-bridge motor driver, the powerbank and the 9V battery on the first layer (bottom) and the raspberry pi 4, breadboard and camera on the second layer (top). We also decided to place the servo and motor at the bottom of the vehicle, with the servo attached to our 3D-printed axle and wheels, and the motor attached to another custom-made 3D-printed axle and wheels. (Refer to the Mechanical Diagram of the Vehicle). We utilised the mini holes in our vehicle chassis to organise our wires within the slots which would make it easier to troubleshoot and move components within the vehicle, and used cable ties to tie our wires together which would allow the wires not to be dangling when the vehicle was moving.
 
+### Vehicle Assembly Considerations
 A consideration we took when assembling the vehicle together was the weight of each component. An example of this is how we decided to place our powerbank in the first layer in the middle of the vehicle since that was where the vehicle's center of gravity lies at and because we did not want to shift the vehicle's center of gravity. We then distributed the remaining components evenly to balance the weight. Another consideration we took was the function and purpose of each component. For instance, we placed the ultrasonic sensors on the first layer in order to detect if there were any walls in the surroundings and for the parking. Moreover, we also placed the camera on the second layer as we wanted it to detect for the objects around it and the lines more effectively, since it will have a better view of its surroundings compared to when it is placed in the first layer. 
