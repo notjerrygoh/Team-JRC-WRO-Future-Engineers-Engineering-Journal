@@ -36,9 +36,9 @@ DC motor Movement:
 The DC Motor uses a motor driver to drive the DC Motor with an external power supply (9V battery) as the 5V from the Raspberry Pi is not enough to sustain it. We will connect the motor driver to 2 pins, 23 and 24. GPIO pins 23 and 24 connect to M1A and M1B respectively, allowing the robot to move forwards and backwards given values entered into the code.
 
 ### Applications
-bject Detection:
+Object Detection:
 This applications combines the colour detection with the servo movement. When the Pi Camera approaches the red or green block on the map, it will detect the colour of the incoming block by the Pi Camera and the servo would then perform a series of turns in order to avoid the obstacle by using PWM values. One such example is as follows:
-If green block detected: 1000 (Turn Left) --> 1500 (Stabilise) --> 2000 (Turn Right) ---> 1500 (Stabilise)
+If green block detected: 1000 (Turn Left) --> 1500 (Stabilise) --> 2000 (Turn Right) ---> 1500 (Stabilise) 
 
 This helps the robot to avoid bumping into the obstacle in front all while moving forward
 
