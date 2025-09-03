@@ -7,4 +7,4 @@ This directory must contain one or several schematic diagrams in form of JPEG, P
 **Refer to Team JRC Robot Schematic Diagram (LT Spice Software) for the original file of the schematic diagram**
 ===
 
-Download LT Spice in order to run the file.
+Download LT Spice in order to open the file.
