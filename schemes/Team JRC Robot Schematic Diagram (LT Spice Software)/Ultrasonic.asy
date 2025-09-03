@@ -1,0 +1,16 @@
+Version 4
+SymbolType BLOCK
+RECTANGLE Normal 96 96 -96 -96
+TEXT 0 -80 Center 2 Ultrasonic
+PIN -96 -48 LEFT 8
+PINATTR PinName Vcc
+PINATTR SpiceOrder 1
+PIN 96 -48 RIGHT 8
+PINATTR PinName Trig
+PINATTR SpiceOrder 2
+PIN -96 48 LEFT 8
+PINATTR PinName GND
+PINATTR SpiceOrder 3
+PIN 96 48 RIGHT 8
+PINATTR PinName Echo
+PINATTR SpiceOrder 4

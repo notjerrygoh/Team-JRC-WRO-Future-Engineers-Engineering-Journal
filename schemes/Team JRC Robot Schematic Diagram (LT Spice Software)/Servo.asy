@@ -1,0 +1,13 @@
+Version 4
+SymbolType BLOCK
+RECTANGLE Normal 80 48 -80 -80
+TEXT 0 -64 Center 2 Servo
+PIN -80 -32 LEFT 8
+PINATTR PinName Vcc
+PINATTR SpiceOrder 1
+PIN 80 0 RIGHT 8
+PINATTR PinName DATA
+PINATTR SpiceOrder 2
+PIN -80 32 LEFT 8
+PINATTR PinName GND
+PINATTR SpiceOrder 3
