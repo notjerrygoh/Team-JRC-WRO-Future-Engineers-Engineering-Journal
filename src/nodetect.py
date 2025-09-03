@@ -14,9 +14,9 @@ offset = 200
 
 # Ultrasonic sensors
 factory = PiGPIOFactory()
-frontultrasonic = DistanceSensor(echo=27, trigger=22, max_distance=4, pin_factory=factory)  # White (22) and Brown (27)
+frontultrasonic = DistanceSensor(echo=5, trigger=6, max_distance=4, pin_factory=factory)  # White (22) and Brown (27)
 leftultrasonic = DistanceSensor(echo=17, trigger=4, max_distance=4, pin_factory=factory)   # Orange (17) and Blue (4)
-rightultrasonic = DistanceSensor(echo=5, trigger=6, max_distance=4, pin_factory=factory)   # Green (6) and Blue (5)
+rightultrasonic = DistanceSensor(echo=27, trigger=22, max_distance=4, pin_factory=factory)   # Green (6) and Blue (5)
 backultrasonic = DistanceSensor(echo=19, trigger=26, max_distance=4, pin_factory=factory)  # White (19) and Purple (26)
 
 # Servo
@@ -92,10 +92,10 @@ try:
         if lap_count < 12:
             # --- ORANGE LINE DETECTION ---
             lap_count, on_orange_line, crossed = detect_orange(frame, on_orange_line, lap_count)
-            motorSpeed(222)
+            motorSpeed(200)
 
             if crossed and orange_sequence is None:
-                orange_sequence = ([(1500, 0.0), ((1500 + offset), 4.1), (1500, 0)], 0, current_time)
+                orange_sequence = ([(1500, 0.0), ((1500 + offset), 1.6), (1500, 0)], 0, current_time)
                 print(f"Lap {lap_count} completed")
 
             # --- ORANGE SEQUENCE HANDLING ---
