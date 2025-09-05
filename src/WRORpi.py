@@ -150,7 +150,7 @@ try:
 
 
             if crossed and orange_sequence is None:
-                orange_sequence = ([(1500,3), (1000,3), (1500,0)], 0, current_time)
+                orange_sequence = ([(1500, 1.5), (2000, 1), (1500,0)], 0, current_time)
                 print(f"Lap {lap_count} completed")
 
 
