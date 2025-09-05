@@ -146,6 +146,7 @@ try:
 
         if lap_count < 13:
             lap_count, on_orange_line, crossed = detect_orange(frame, on_orange_line, lap_count)
+            speedMotor(100)
 
 
             if crossed and orange_sequence is None:
@@ -245,4 +246,5 @@ finally:
     motorSpeed(0)
     pwm.set_servo_pulsewidth(servo_pin, 0)
     cv2.destroyAllWindows()
+
 
