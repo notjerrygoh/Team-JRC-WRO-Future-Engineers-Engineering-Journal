@@ -122,7 +122,7 @@ def align_parallel(tolerance=1.0, target_distance=10.0):
 
 # --- Step 3: Overshoot ---
 def overshoot():
-    print("Overshooting past slot")
+    print("Overshooting")
     setServo(1500)
     front_target = -5  # 5 cm past front pink block
     while (frontultrasonic.distance * 100) > front_target:
