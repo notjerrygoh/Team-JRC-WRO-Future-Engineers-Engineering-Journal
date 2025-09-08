@@ -192,5 +192,4 @@ WHILE True:
 motorSpeed(0)
 pwm.set_servo_pulsewidth(servo_pin, 0)
 cv2.destroyAllWindows()
-
 END
