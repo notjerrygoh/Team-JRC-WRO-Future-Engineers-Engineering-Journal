@@ -10,7 +10,7 @@ from picamera2 import Picamera2
 
 # --- Setup PiGPIO ---
 pi = pigpio.pi()
-pwm = pigpio.pi()  # for servo
+pwm = pigpio.pi() 
 factory = PiGPIOFactory()
 
 # --- Wall choice ---
@@ -22,8 +22,10 @@ rightultrasonic = DistanceSensor(echo=17, trigger=4, max_distance=4, pin_factory
 frontultrasonic = DistanceSensor(echo=5, trigger=6, max_distance=4, pin_factory=factory)
 backultrasonic = DistanceSensor(echo=16, trigger=26, max_distance=4, pin_factory=factory)
 
-# Choose the wall sensor based on side
-wall_sensor = leftultrasonic if wall_side == "left" else rightultrasonic
+if wall_side == "left":
+    wall_sensor = leftultrasonic
+else:
+    wall_sensor = rightultrasonic
 
 # --- Servo setup ---
 servo_pin = 16
@@ -124,8 +126,8 @@ def align_parallel(tolerance=1.0, target_distance=10.0):
 def overshoot():
     print("Overshooting")
     setServo(1500)
-    front_target = -5  # 5 cm past front pink block
-    while (frontultrasonic.distance * 100) > front_target:
+    front_target = -0.05
+    while frontultrasonic.distance > front_target:
         motorSpeed(40)
     motorSpeed(0)
     print("Done")
@@ -133,12 +135,12 @@ def overshoot():
 # --- Step 4: Reverse into slot ---
 def reverse_into_slot():
     print("Reversing into slot")
-    target_wall_distance = 5  # desired distance from wall
+    target_wall_distance = 0.05  # desired distance from wall
     setServo(1500)
     while (backultrasonic.distance * 100) > 5:  # stop x cm before rear pink block
         motorSpeed(-30)
         # Smooth servo adjustment
-        wall_dist = wall_sensor.distance * 100
+        wall_dist = wall_sensor.distance
         error = wall_dist - target_wall_distance
         if wall_side == "left":
             servo_pw = 1500 + int(error * 50)
