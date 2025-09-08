@@ -135,12 +135,12 @@ def overshoot():
 # --- Step 4: Reverse into slot ---
 def reverse_into_slot():
     print("Reversing into slot")
-    target_wall_distance = 0.05  # desired distance from wall
+    target_wall_distance = 5  # desired distance from wall
     setServo(1500)
     while (backultrasonic.distance * 100) > 5:  # stop x cm before rear pink block
         motorSpeed(-30)
         # Smooth servo adjustment
-        wall_dist = wall_sensor.distance
+        wall_dist = wall_sensor.distance * 100
         error = wall_dist - target_wall_distance
         if wall_side == "left":
             servo_pw = 1500 + int(error * 50)
