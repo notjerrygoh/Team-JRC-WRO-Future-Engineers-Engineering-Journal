@@ -186,7 +186,7 @@ try:
             cv2.imshow("Color Detection", frame)
             
             
-        else:
+        else: # Parking
             if distance_cm < 30 and orange_sequence is None:
                 pwm.set_servo_pulsewidth(servo_pin, 1500)
                 left_dist = leftultrasonic.distance * 100
@@ -207,4 +207,5 @@ finally:
     motorSpeed(0)
     pwm.set_servo_pulsewidth(servo_pin, 0)
     cv2.destroyAllWindows()
+
 
