@@ -1,9 +1,24 @@
+# Run sudo pigpiod in terminal before running code
+# PLAN C - PURE ULTRASONIC PARKING (No Camera, No Pink Detection)
+# Modified to start orange line detection from 11
+
 from gpiozero import DistanceSensor
 from gpiozero.pins.pigpio import PiGPIOFactory
 from time import time, sleep
 import pigpio
+import cv2
+import numpy as np
+from picamera2 import Picamera2
 
 pi = pigpio.pi()
+
+# Initialize camera
+cam = Picamera2()
+cam.preview_configuration.main.size = (640, 480)
+cam.preview_configuration.main.format = "RGB888"
+cam.preview_configuration.align()
+cam.configure("preview")
+cam.start()
 
 # Ultrasonic sensors
 factory = PiGPIOFactory()
@@ -38,12 +53,43 @@ def motorSpeed(speed):
         pi.set_PWM_dutycycle(M1A, 0)
         pi.set_PWM_dutycycle(M1B, 0)
 
-# Plan C Parking State Machine
-class PlanCParkingMachine:
+# Orange line detection function
+def detect_orange_line(frame):
+    """Detect orange lines in the frame and return count"""
+    # Convert to HSV for better color detection
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    
+    # Orange color range (adjust these values based on your orange lines)
+    lower_orange = np.array([10, 100, 100])  # Lower bound for orange in HSV
+    upper_orange = np.array([25, 255, 255])  # Upper bound for orange in HSV
+    
+    # Create mask for orange color
+    mask = cv2.inRange(hsv, lower_orange, upper_orange)
+    
+    # Find contours
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    # Filter contours that look like lines (horizontal, certain size)
+    line_contours = []
+    for contour in contours:
+        # Get bounding rectangle
+        x, y, w, h = cv2.boundingRect(contour)
+        
+        # Check if it's line-like (wider than it is tall, minimum size)
+        if w > h * 2 and w > 50 and h > 5:
+            line_contours.append(contour)
+    
+    return len(line_contours), mask
+
+# Game Field Parking State Machine
+class GameFieldParkingMachine:
     def __init__(self):
-        self.state = "STEP1_TURN_90"  # STEP1_TURN_90, STEP2_FORWARD_5SEC, STEP3_LEFT_PARK, 
-                                      # STEP4_RIGHT_PARK, STEP5_FINAL_ADJUST, PARKED
+        self.state = "NAVIGATE_TO_12TH_LINE"  # NAVIGATE_TO_12TH_LINE, CENTER_BETWEEN_WALLS, 
+                                              # TURN_TO_PARKING, REVERSE_PARK, FINE_TUNE, PARKED
+        self.orange_line_count = 11  # START FROM 11 FOR TESTING
         self.step_start_time = None
+        self.last_line_detection_time = 0
+        self.line_detection_cooldown = 2.0  # Prevent double counting
         
     def get_sensor_readings(self):
         """Get all ultrasonic sensor readings in cm"""
@@ -129,108 +175,121 @@ class PlanCParkingMachine:
         
         return front_back_ok and sides_ok
         
-    def execute_parking(self, current_time):
+    def execute_parking(self, frame, current_time):
         sensors = self.get_sensor_readings()
         
         print(f"📍 Step: {self.state}")
+        print(f"🧮 Orange lines detected: {self.orange_line_count}")
         print(f"📏 Sensors - F:{sensors['front']:.1f} B:{sensors['back']:.1f} L:{sensors['left']:.1f} R:{sensors['right']:.1f}")
         
-        if self.state == "STEP1_TURN_90":
-            # Step 1: Turn 90 degrees using front servo
-            if self.step_start_time is None:
-                self.step_start_time = current_time
-                print("🔄 Starting 90-degree turn")
-                
-            elapsed = current_time - self.step_start_time
+        if self.state == "NAVIGATE_TO_12TH_LINE":
+            # Navigate forward while counting orange lines
+            line_count, orange_mask = detect_orange_line(frame)
             
-            if elapsed < 3.0:  # Turn for 3 seconds (90 degrees)
-                pwm.set_servo_pulsewidth(servo_pin, 1650)  # Right turn (gentle for PLA wheels)
-                motorSpeed(35)  # Slow turning speed
-                print(f"🔄 Turning 90 degrees... {elapsed:.1f}s")
-            else:
-                motorSpeed(0)
-                pwm.set_servo_pulsewidth(servo_pin, 1500)  # Center servo
-                self.state = "STEP2_FORWARD_5SEC"
-                self.step_start_time = current_time
-                print("✅ STEP 1 COMPLETE: 90-degree turn finished")
-                
-        elif self.state == "STEP2_FORWARD_5SEC":
-            # Step 2: Move forward for 5 seconds and stop
-            if self.step_start_time is None:
-                self.step_start_time = current_time
-                print("⬆️ Moving forward for 5 seconds")
-                
-            elapsed = current_time - self.step_start_time
+            # Check if we detected new lines (with cooldown to prevent double counting)
+            if line_count > 0 and (current_time - self.last_line_detection_time) > self.line_detection_cooldown:
+                self.orange_line_count += line_count
+                self.last_line_detection_time = current_time
+                print(f"🟠 NEW ORANGE LINE(S) DETECTED! Total count: {self.orange_line_count}")
             
-            if elapsed < 5.0:  # Move forward for 5 seconds
+            # Navigate forward with obstacle avoidance
+            if sensors['front'] > 15:  # Safe to move forward
                 pwm.set_servo_pulsewidth(servo_pin, 1500)  # Straight
-                motorSpeed(50)  # Forward
-                print(f"⬆️ Moving forward... {elapsed:.1f}s")
+                motorSpeed(50)  # Move forward
+                print(f"⬆️ Navigating to 12th line... Current: {self.orange_line_count}")
+            else:
+                # Stop if obstacle ahead
+                motorSpeed(0)
+                print("🛑 Obstacle detected, stopping navigation")
+            
+            # Check if we've reached the 12th line
+            if self.orange_line_count >= 12:
+                motorSpeed(0)
+                self.state = "CENTER_BETWEEN_WALLS"
+                self.step_start_time = current_time
+                print("✅ REACHED 12TH ORANGE LINE! Moving to centering phase")
+            
+            # Show orange detection mask for debugging
+            cv2.imshow("Orange Line Detection", orange_mask)
+                
+        elif self.state == "CENTER_BETWEEN_WALLS":
+            # Center robot between left and right walls
+            left_dist = sensors['left']
+            right_dist = sensors['right']
+            
+            print(f"🎯 Centering - Left: {left_dist:.1f}cm, Right: {right_dist:.1f}cm")
+            
+            # Calculate difference
+            diff = left_dist - right_dist
+            
+            if abs(diff) > 3:  # Not centered enough
+                if diff > 0:  # More space on left, move left
+                    pwm.set_servo_pulsewidth(servo_pin, 1350)  # Turn left
+                    print("↖️ Moving left to center")
+                else:  # More space on right, move right
+                    pwm.set_servo_pulsewidth(servo_pin, 1650)  # Turn right
+                    print("↗️ Moving right to center")
+                motorSpeed(30)  # Slow movement for precision
+            else:
+                # Centered! Move to next phase
+                motorSpeed(0)
+                pwm.set_servo_pulsewidth(servo_pin, 1500)  # Straight
+                self.state = "TURN_TO_PARKING"
+                self.step_start_time = current_time
+                print("✅ CENTERED! Moving to parking turn phase")
+                
+        elif self.state == "TURN_TO_PARKING":
+            # Turn toward the parking lot (side with more space)
+            left_dist = sensors['left']
+            right_dist = sensors['right']
+            
+            if self.step_start_time is None:
+                self.step_start_time = current_time
+                
+            elapsed = current_time - self.step_start_time
+            
+            # Determine which side has more space
+            turn_direction = "left" if left_dist > right_dist else "right"
+            
+            if elapsed < 2.0:  # Turn for 2 seconds
+                if turn_direction == "left":
+                    pwm.set_servo_pulsewidth(servo_pin, 1350)  # Turn left
+                    print(f"🔄 Turning left toward parking (L:{left_dist:.1f} > R:{right_dist:.1f})")
+                else:
+                    pwm.set_servo_pulsewidth(servo_pin, 1650)  # Turn right
+                    print(f"🔄 Turning right toward parking (R:{right_dist:.1f} > L:{left_dist:.1f})")
+                motorSpeed(35)  # Turning speed
             else:
                 motorSpeed(0)
-                self.state = "STEP3_LEFT_PARK"
+                pwm.set_servo_pulsewidth(servo_pin, 1500)  # Center
+                self.state = "REVERSE_PARK"
                 self.step_start_time = current_time
-                print("✅ STEP 2 COMPLETE: Forward movement finished")
+                print("✅ TURN COMPLETE! Starting reverse parking")
                 
-        elif self.state == "STEP3_LEFT_PARK":
-            # Step 3: Turn servo left (25 degrees), move backward into parking lot
-            print("🏁 STEP 3: Left steering parking attempt")
-            pwm.set_servo_pulsewidth(servo_pin, 1350)  # Turn left (25 degrees)
+        elif self.state == "REVERSE_PARK":
+            # Reverse into the parking space
+            print("🏁 Reverse parking into space")
             
             # Check if we can still reverse safely
             if sensors['back'] > 10:  # Safe to reverse
+                pwm.set_servo_pulsewidth(servo_pin, 1500)  # Straight
                 motorSpeed(-45)  # Reverse into parking space
-                print("⬇️ Reversing into parking space with left steer")
+                print("⬇️ Reversing into parking space")
             else:
                 motorSpeed(0)
-                print("🛑 Too close to back obstacle, stopping reverse")
-            
-            # Check if adjustment needed or if we should move to next step
-            if self.check_parking_complete(sensors):
-                motorSpeed(0)
-                pwm.set_servo_pulsewidth(servo_pin, 1500)
-                self.state = "PARKED"
-                print("🎉 PARKING COMPLETE after left steering!")
-            elif not self.adjust_position_in_parking(sensors):
-                # If no adjustment was needed, move to right steering attempt
-                self.state = "STEP4_RIGHT_PARK"
+                self.state = "FINE_TUNE"
                 self.step_start_time = current_time
-                print("➡️ Moving to right steering attempt")
+                print("✅ REVERSE COMPLETE! Moving to fine-tuning")
                 
-        elif self.state == "STEP4_RIGHT_PARK":
-            # Step 4: Turn servo right (25 degrees), move backward into parking lot  
-            print("🏁 STEP 4: Right steering parking attempt")
-            pwm.set_servo_pulsewidth(servo_pin, 1650)  # Turn right (25 degrees)
-            
-            # Check if we can still reverse safely
-            if sensors['back'] > 10:  # Safe to reverse
-                motorSpeed(-45)  # Reverse into parking space
-                print("⬇️ Reversing into parking space with right steer")
-            else:
-                motorSpeed(0)
-                print("🛑 Too close to back obstacle, stopping reverse")
-            
-            # Check if adjustment needed or if we should move to final adjustment
-            if self.check_parking_complete(sensors):
-                motorSpeed(0)
-                pwm.set_servo_pulsewidth(servo_pin, 1500)
-                self.state = "PARKED"
-                print("🎉 PARKING COMPLETE after right steering!")
-            elif not self.adjust_position_in_parking(sensors):
-                # Move to final adjustment phase
-                self.state = "STEP5_FINAL_ADJUST"
-                self.step_start_time = current_time
-                print("🔧 Moving to final adjustment phase")
-                
-        elif self.state == "STEP5_FINAL_ADJUST":
-            # Step 5: Final position adjustments until all thresholds satisfied
-            print("🔧 STEP 5: Final position adjustment")
+        elif self.state == "FINE_TUNE":
+            # Fine-tune position until all thresholds satisfied
+            print("🔧 Fine-tuning position")
             
             if self.check_parking_complete(sensors):
                 motorSpeed(0)
                 pwm.set_servo_pulsewidth(servo_pin, 1500)
                 self.state = "PARKED"
-                print("🎉 PARKING COMPLETE after final adjustments!")
+                print("🎉 PARKING COMPLETE!")
                 return True
             else:
                 # Keep adjusting position
@@ -252,6 +311,7 @@ parking_system = GameFieldParkingMachine()
 print("=" * 60)
 print("🚗 GAME FIELD PARKING SYSTEM - ORANGE LINE DETECTION")
 print("=" * 60)
+print("🔥 TESTING MODE: Starting orange line count from 11")
 print("1️⃣ Navigate until 12th orange line detected")
 print("2️⃣ Center robot between walls")  
 print("3️⃣ Turn toward parking lot (side with more space)")
@@ -269,7 +329,7 @@ try:
         # Execute Game Field parking sequence
         parking_complete = parking_system.execute_parking(frame, current_time)
         
-        # Show camera feed for orange line detection debugging
+        # Show camera feed for debugging
         cv2.imshow("Game Field Parking - Orange Detection", frame)
         
         # Exit condition
