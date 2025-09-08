@@ -41,7 +41,7 @@ pi.set_mode(M1A, pigpio.OUTPUT)
 pi.set_mode(M1B, pigpio.OUTPUT)
 
 def motorSpeed(speed):
-    speed *= 2  # scale for precision
+    speed *= 2 
     if speed > 0:
         pi.set_PWM_dutycycle(M1A, speed)
         pi.set_PWM_dutycycle(M1B, 0)
