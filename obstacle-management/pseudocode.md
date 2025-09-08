@@ -22,7 +22,6 @@ SET PWM signal on servo_pin with a frequency of 50 Hz
 SET PWM of servo_pin to 1500
 
 INITIALISE Picamera and a preview with a resolution of 640 x 360
-START Picamera
 
 M1A = GPIO pin 23
 M1B = GPIO pin 24
@@ -172,6 +171,7 @@ WHILE True:
     ENDIF
     OUTPUT colour_detected
     cv2.imshow("Color Detection", frame)
+ 
  ELSE: #Parking logic here
   IF distance_cm < 30 and orange_sequence is None:
       SET servo PWM value on servo_pin to be 1500
@@ -193,10 +193,4 @@ motorSpeed(0)
 pwm.set_servo_pulsewidth(servo_pin, 0)
 cv2.destroyAllWindows()
 
-
-    
-    
-
-
-
-
+END
