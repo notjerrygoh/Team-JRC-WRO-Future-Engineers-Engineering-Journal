@@ -246,31 +246,39 @@ class PlanCParkingMachine:
             
         return False  # Parking still in progress
 
-# Initialize Plan C parking system
-parking_system = PlanCParkingMachine()
+# Initialize Game Field parking system
+parking_system = GameFieldParkingMachine()
 
-print("=" * 50)
-print("🚗 PLAN C - ULTRASONIC-ONLY PARKING SYSTEM")
-print("=" * 50)
-print("1️⃣ Turn 90 degrees")
-print("2️⃣ Move forward 5 seconds")  
-print("3️⃣ Left steering + reverse parking")
-print("4️⃣ Right steering + reverse parking")
-print("5️⃣ Final position adjustments")
+print("=" * 60)
+print("🚗 GAME FIELD PARKING SYSTEM - ORANGE LINE DETECTION")
+print("=" * 60)
+print("1️⃣ Navigate until 12th orange line detected")
+print("2️⃣ Center robot between walls")  
+print("3️⃣ Turn toward parking lot (side with more space)")
+print("4️⃣ Reverse park into space")
+print("5️⃣ Fine-tune position")
 print("🎯 Target: F>8cm, B>8cm, L>5cm, R>5cm")
 print("Press Ctrl+C to emergency stop")
-print("=" * 50)
+print("=" * 60)
 
 try:
     while True:
+        frame = cv2.cvtColor(cam.capture_array()[::-1, :, :3], cv2.COLOR_RGB2BGR)
         current_time = time()
 
-        # Execute Plan C parking sequence
-        parking_complete = parking_system.execute_parking(current_time)
+        # Execute Game Field parking sequence
+        parking_complete = parking_system.execute_parking(frame, current_time)
+        
+        # Show camera feed for orange line detection debugging
+        cv2.imshow("Game Field Parking - Orange Detection", frame)
+        
+        # Exit condition
+        if cv2.waitKey(10) & 0xFF == ord('q'):
+            break
         
         # Auto-exit when parking is complete
         if parking_complete:
-            print("🎉 PLAN C PARKING SEQUENCE COMPLETED SUCCESSFULLY! 🎉")
+            print("🎉 GAME FIELD PARKING SEQUENCE COMPLETED SUCCESSFULLY! 🎉")
             print("Waiting 3 seconds before exit...")
             sleep(3)
             break
@@ -286,5 +294,7 @@ finally:
     pwm.set_servo_pulsewidth(servo_pin, 1500)  # Center servo
     sleep(0.5)
     pwm.set_servo_pulsewidth(servo_pin, 0)     # Turn off servo
+    cv2.destroyAllWindows()
+    cam.stop()
     pi.stop()
-    print("✅ Plan C parking test complete!")
+    print("✅ Game field parking test complete!")
