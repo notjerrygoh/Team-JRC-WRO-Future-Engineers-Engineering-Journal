@@ -312,7 +312,7 @@ print("2️. Center robot between walls")
 print("3️. Turn toward parking lot (side with more space)")
 print("4️. Reverse park into space")
 print("5️. Fine-tune position")
-print("🎯 Target: F>8cm, B>8cm, L>5cm, R>5cm")
+print("Target: F>8cm, B>8cm, L>5cm, R>5cm")
 print("Press Ctrl+C to emergency stop")
 print("=" * 60)
 
@@ -344,7 +344,7 @@ except KeyboardInterrupt:
     print("\nEMERGENCY STOP - Manual interrupt")
 
 finally:
-    print("🔧 Stopping robot and cleaning up...")
+    print("Stopping robot and cleaning up...")
     motorSpeed(0)
     pwm.set_servo_pulsewidth(servo_pin, 1500)  # Center servo
     sleep(0.5)
