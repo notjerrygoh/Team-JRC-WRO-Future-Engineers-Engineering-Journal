@@ -76,7 +76,7 @@ def detect_pink(frame):
 
 # --- Step 1: Approach pink zone ---
 def approach_pink():
-    print("[STEP 1] Approaching pink zone")
+    print("Approaching pink blocks")
     while True:
         frame = cv2.cvtColor(cam.capture_array(), cv2.COLOR_RGB2BGR)
         detected, center_x, area = detect_pink(frame)
@@ -97,11 +97,7 @@ def approach_pink():
 
 # --- Step 2: Align parallel along wall ---
 def align_parallel(tolerance=1.0, target_distance=10.0):
-    """
-    Align the robot along the selected wall using the wall sensor.
-    Smoothly adjusts servo while moving slowly.
-    """
-    print(f"[STEP 2] Aligning parallel to {wall_side} wall...")
+    print("Aligning parallel to wall")
     while True:
         wall_dist = wall_sensor.distance * 100
         error = wall_dist - target_distance
@@ -109,7 +105,7 @@ def align_parallel(tolerance=1.0, target_distance=10.0):
         if abs(error) <= tolerance:
             motorSpeed(0)
             setServo(1500)
-            print("[ALIGN] Robot aligned parallel to wall")
+            print("Robot aligned parallel to wall")
             break
 
         # Determine servo adjustment based on wall side
@@ -126,17 +122,17 @@ def align_parallel(tolerance=1.0, target_distance=10.0):
 
 # --- Step 3: Overshoot ---
 def overshoot():
-    print("[STEP 3] Overshooting past slot")
+    print("Overshooting past slot")
     setServo(1500)
     front_target = -5  # 5 cm past front pink block
     while (frontultrasonic.distance * 100) > front_target:
         motorSpeed(40)
     motorSpeed(0)
-    print("[OVERSHOOT] Done")
+    print("Done")
 
 # --- Step 4: Reverse into slot ---
 def reverse_into_slot():
-    print("[STEP 4] Reversing into slot")
+    print("Reversing into slot")
     target_wall_distance = 5  # desired distance from wall
     setServo(1500)
     while (backultrasonic.distance * 100) > 5:  # stop x cm before rear pink block
@@ -152,7 +148,7 @@ def reverse_into_slot():
         setServo(servo_pw)
     motorSpeed(0)
     setServo(1500)
-    print("[PARKING] Done. Robot parked and aligned.")
+    print("Done. Robot parked and aligned.")
 
 # --- MAIN ---
 try:
