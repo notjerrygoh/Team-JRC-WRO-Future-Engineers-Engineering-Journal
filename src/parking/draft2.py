@@ -1,6 +1,3 @@
-# Run sudo pigpiod in terminal before running code
-# PLAN C - PURE ULTRASONIC PARKING (No Camera, No Pink Detection)
-
 from gpiozero import DistanceSensor
 from gpiozero.pins.pigpio import PiGPIOFactory
 from time import time, sleep
