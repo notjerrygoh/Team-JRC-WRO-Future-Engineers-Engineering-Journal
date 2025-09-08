@@ -86,7 +86,6 @@ def detect_parking(frame):
 # Red and green detection
 def traffic_lights(frame):
     hsvFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-
     # Red
     red_lower1 = np.array([0, 150, 50], np.uint8)
     red_upper1 = np.array([5, 255, 255], np.uint8)
@@ -243,6 +242,7 @@ finally:
     motorSpeed(0)
     pwm.set_servo_pulsewidth(servo_pin, 0)
     cv2.destroyAllWindows()
+
 
 
 
