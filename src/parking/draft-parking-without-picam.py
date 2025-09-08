@@ -1,7 +1,3 @@
-# Run sudo pigpiod in terminal before running code
-# PLAN C - PURE ULTRASONIC PARKING (No Camera, No Pink Detection)
-# Modified to start orange line detection from 11
-
 from gpiozero import DistanceSensor
 from gpiozero.pins.pigpio import PiGPIOFactory
 from time import time, sleep
@@ -111,13 +107,13 @@ class GameFieldParkingMachine:
     
     def adjust_position_in_parking(self, sensors):
         """Handle position adjustment when in parking space"""
-        print(f"🔧 Adjusting position - F:{sensors['front']:.1f} B:{sensors['back']:.1f} L:{sensors['left']:.1f} R:{sensors['right']:.1f}")
+        print(f"Adjusting position - F:{sensors['front']:.1f} B:{sensors['back']:.1f} L:{sensors['left']:.1f} R:{sensors['right']:.1f}")
         
         moved = False
         
-        # Priority 1: Front/Back distance control
+        # Front/Back distance control
         if sensors['front'] <= 8:
-            print("⬅️ Front too close - moving backward")
+            print("Front too close - moving backward")
             pwm.set_servo_pulsewidth(servo_pin, 1500)  # Straight
             motorSpeed(-40)  # Move backward
             sleep(0.5)
@@ -125,17 +121,17 @@ class GameFieldParkingMachine:
             moved = True
             
         elif sensors['back'] <= 8:
-            print("➡️ Back too close - moving forward") 
+            print("Back too close - moving forward") 
             pwm.set_servo_pulsewidth(servo_pin, 1500)  # Straight
             motorSpeed(40)  # Move forward
             sleep(0.5)
             motorSpeed(0)
             moved = True
         
-        # Priority 2: Side distance control (if front/back are OK)
+        # Side distance control (if front/back are OK)
         if not moved:
             if sensors['left'] <= 5:
-                print("↗️ Left side too close - steering right and adjusting")
+                print("Left side too close - steering right and adjusting")
                 pwm.set_servo_pulsewidth(servo_pin, 1650)  # Turn right (25 degrees)
                 # Choose direction based on which has more space
                 if sensors['front'] > sensors['back']:
@@ -149,7 +145,7 @@ class GameFieldParkingMachine:
                 moved = True
                 
             elif sensors['right'] <= 5:
-                print("↖️ Right side too close - steering left and adjusting")
+                print("Right side too close - steering left and adjusting")
                 pwm.set_servo_pulsewidth(servo_pin, 1350)  # Turn left (25 degrees)
                 # Choose direction based on which has more space
                 if sensors['front'] > sensors['back']:
@@ -178,9 +174,9 @@ class GameFieldParkingMachine:
     def execute_parking(self, frame, current_time):
         sensors = self.get_sensor_readings()
         
-        print(f"📍 Step: {self.state}")
-        print(f"🧮 Orange lines detected: {self.orange_line_count}")
-        print(f"📏 Sensors - F:{sensors['front']:.1f} B:{sensors['back']:.1f} L:{sensors['left']:.1f} R:{sensors['right']:.1f}")
+        print(f"Step: {self.state}")
+        print(f"Orange lines detected: {self.orange_line_count}")
+        print(f"Sensors - F:{sensors['front']:.1f} B:{sensors['back']:.1f} L:{sensors['left']:.1f} R:{sensors['right']:.1f}")
         
         if self.state == "NAVIGATE_TO_12TH_LINE":
             # Navigate forward while counting orange lines
@@ -190,24 +186,24 @@ class GameFieldParkingMachine:
             if line_count > 0 and (current_time - self.last_line_detection_time) > self.line_detection_cooldown:
                 self.orange_line_count += line_count
                 self.last_line_detection_time = current_time
-                print(f"🟠 NEW ORANGE LINE(S) DETECTED! Total count: {self.orange_line_count}")
+                print(f"NEW ORANGE LINE DETECTED! Total count: {self.orange_line_count}")
             
             # Navigate forward with obstacle avoidance
             if sensors['front'] > 15:  # Safe to move forward
                 pwm.set_servo_pulsewidth(servo_pin, 1500)  # Straight
                 motorSpeed(50)  # Move forward
-                print(f"⬆️ Navigating to 12th line... Current: {self.orange_line_count}")
+                print(f"Navigating to 12th line... Current: {self.orange_line_count}")
             else:
                 # Stop if obstacle ahead
                 motorSpeed(0)
-                print("🛑 Obstacle detected, stopping navigation")
+                print("Obstacle detected, stopping navigation")
             
             # Check if we've reached the 12th line
             if self.orange_line_count >= 12:
                 motorSpeed(0)
                 self.state = "CENTER_BETWEEN_WALLS"
                 self.step_start_time = current_time
-                print("✅ REACHED 12TH ORANGE LINE! Moving to centering phase")
+                print("INITIATING PARKING SYSTEM.")
             
             # Show orange detection mask for debugging
             cv2.imshow("Orange Line Detection", orange_mask)
@@ -217,7 +213,7 @@ class GameFieldParkingMachine:
             left_dist = sensors['left']
             right_dist = sensors['right']
             
-            print(f"🎯 Centering - Left: {left_dist:.1f}cm, Right: {right_dist:.1f}cm")
+            print(f"Centering - Left: {left_dist:.1f}cm, Right: {right_dist:.1f}cm")
             
             # Calculate difference
             diff = left_dist - right_dist
@@ -225,10 +221,10 @@ class GameFieldParkingMachine:
             if abs(diff) > 3:  # Not centered enough
                 if diff > 0:  # More space on left, move left
                     pwm.set_servo_pulsewidth(servo_pin, 1350)  # Turn left
-                    print("↖️ Moving left to center")
+                    print("Moving left to center")
                 else:  # More space on right, move right
                     pwm.set_servo_pulsewidth(servo_pin, 1650)  # Turn right
-                    print("↗️ Moving right to center")
+                    print("Moving right to center")
                 motorSpeed(30)  # Slow movement for precision
             else:
                 # Centered! Move to next phase
@@ -236,7 +232,7 @@ class GameFieldParkingMachine:
                 pwm.set_servo_pulsewidth(servo_pin, 1500)  # Straight
                 self.state = "TURN_TO_PARKING"
                 self.step_start_time = current_time
-                print("✅ CENTERED! Moving to parking turn phase")
+                print("CENTERED! Moving to parking turn phase")
                 
         elif self.state == "TURN_TO_PARKING":
             # Turn toward the parking lot (side with more space)
@@ -254,42 +250,42 @@ class GameFieldParkingMachine:
             if elapsed < 2.0:  # Turn for 2 seconds
                 if turn_direction == "left":
                     pwm.set_servo_pulsewidth(servo_pin, 1350)  # Turn left
-                    print(f"🔄 Turning left toward parking (L:{left_dist:.1f} > R:{right_dist:.1f})")
+                    print(f"Turning left toward parking (L:{left_dist:.1f} > R:{right_dist:.1f})")
                 else:
                     pwm.set_servo_pulsewidth(servo_pin, 1650)  # Turn right
-                    print(f"🔄 Turning right toward parking (R:{right_dist:.1f} > L:{left_dist:.1f})")
+                    print(f"Turning right toward parking (R:{right_dist:.1f} > L:{left_dist:.1f})")
                 motorSpeed(35)  # Turning speed
             else:
                 motorSpeed(0)
                 pwm.set_servo_pulsewidth(servo_pin, 1500)  # Center
                 self.state = "REVERSE_PARK"
                 self.step_start_time = current_time
-                print("✅ TURN COMPLETE! Starting reverse parking")
+                print("TURN COMPLETE! Starting reverse parking")
                 
         elif self.state == "REVERSE_PARK":
             # Reverse into the parking space
-            print("🏁 Reverse parking into space")
+            print("Reverse parking into space")
             
             # Check if we can still reverse safely
             if sensors['back'] > 10:  # Safe to reverse
                 pwm.set_servo_pulsewidth(servo_pin, 1500)  # Straight
                 motorSpeed(-45)  # Reverse into parking space
-                print("⬇️ Reversing into parking space")
+                print("Reversing into parking space")
             else:
                 motorSpeed(0)
                 self.state = "FINE_TUNE"
                 self.step_start_time = current_time
-                print("✅ REVERSE COMPLETE! Moving to fine-tuning")
+                print("REVERSE COMPLETE! Moving to fine-tuning")
                 
         elif self.state == "FINE_TUNE":
             # Fine-tune position until all thresholds satisfied
-            print("🔧 Fine-tuning position")
+            print("Fine-tuning position")
             
             if self.check_parking_complete(sensors):
                 motorSpeed(0)
                 pwm.set_servo_pulsewidth(servo_pin, 1500)
                 self.state = "PARKED"
-                print("🎉 PARKING COMPLETE!")
+                print("PARKING COMPLETE!")
                 return True
             else:
                 # Keep adjusting position
@@ -299,24 +295,23 @@ class GameFieldParkingMachine:
             # Final state - stay parked
             motorSpeed(0)
             pwm.set_servo_pulsewidth(servo_pin, 1500)
-            print("🅿️ SUCCESSFULLY PARKED!")
-            print(f"📏 Final position - F:{sensors['front']:.1f} B:{sensors['back']:.1f} L:{sensors['left']:.1f} R:{sensors['right']:.1f}")
+            print("SUCCESSFULLY PARKED!")
+            print(f"Final position - F:{sensors['front']:.1f} B:{sensors['back']:.1f} L:{sensors['left']:.1f} R:{sensors['right']:.1f}")
             return True
             
         return False  # Parking still in progress
 
-# Initialize Game Field parking system
+# Initialize Parking system
 parking_system = GameFieldParkingMachine()
 
 print("=" * 60)
-print("🚗 GAME FIELD PARKING SYSTEM - ORANGE LINE DETECTION")
+print("PARKING IN PROGRESS")
 print("=" * 60)
-print("🔥 TESTING MODE: Starting orange line count from 11")
-print("1️⃣ Navigate until 12th orange line detected")
-print("2️⃣ Center robot between walls")  
-print("3️⃣ Turn toward parking lot (side with more space)")
-print("4️⃣ Reverse park into space")
-print("5️⃣ Fine-tune position")
+print("1. Navigate until 12th orange line detected")
+print("2️. Center robot between walls")  
+print("3️. Turn toward parking lot (side with more space)")
+print("4️. Reverse park into space")
+print("5️. Fine-tune position")
 print("🎯 Target: F>8cm, B>8cm, L>5cm, R>5cm")
 print("Press Ctrl+C to emergency stop")
 print("=" * 60)
@@ -338,7 +333,7 @@ try:
         
         # Auto-exit when parking is complete
         if parking_complete:
-            print("🎉 GAME FIELD PARKING SEQUENCE COMPLETED SUCCESSFULLY! 🎉")
+            print("DONE")
             print("Waiting 3 seconds before exit...")
             sleep(3)
             break
@@ -346,7 +341,7 @@ try:
         sleep(0.1)  # Small delay for stability
 
 except KeyboardInterrupt:
-    print("\n🛑 EMERGENCY STOP - Manual interrupt")
+    print("\nEMERGENCY STOP - Manual interrupt")
 
 finally:
     print("🔧 Stopping robot and cleaning up...")
@@ -357,4 +352,4 @@ finally:
     cv2.destroyAllWindows()
     cam.stop()
     pi.stop()
-    print("✅ Game field parking test complete!")
+    print("Game field parking test complete!")
