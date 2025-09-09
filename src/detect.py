@@ -22,7 +22,7 @@ servo_pin = 16
 pwm = pigpio.pi()
 pwm.set_mode(servo_pin, pigpio.OUTPUT)
 pwm.set_PWM_frequency(servo_pin, 50)
-pwm.set_servo_pulsewidth(servo_pin, 1500)  # neutral start
+pwm.set_servo_pulsewidth(servo_pin, 1500)  
 
 # Camera
 cam = Picamera2()
@@ -161,7 +161,7 @@ try:
                 else:
                     stable_counter = 0
 
-                if servo_sequence is None and stable_counter >= 3:  # wait 3 frames
+                if servo_sequence is None and stable_counter >= 3: 
                     if red_area > green_area:
                         servo_sequence = ([(2000,1), (1500,1), (1000,1), (1500,0)], 0, current_time + 0.1)
                         color_detected = red_label
@@ -190,7 +190,6 @@ try:
             print("Detected:", color_detected)
             cv2.imshow("Color Detection", frame)
 
-        # --- ULTRASONIC FALLBACK IF CAMERA FAILS ---
         elif not camera_ok and lap_count < 12:
             if distance_cm < 30 and orange_sequence is None:
                 pwm.set_servo_pulsewidth(servo_pin, 1500)
@@ -207,7 +206,6 @@ try:
                 motorSpeed(100)
 
         else: 
-            # --- PARKING CODE GOES HERE ---
             pass
 
         if cv2.waitKey(10) & 0xFF == ord('q'):
@@ -218,4 +216,5 @@ finally:
     motorSpeed(0)
     pwm.set_servo_pulsewidth(servo_pin, 0)
     cv2.destroyAllWindows()
+
 
