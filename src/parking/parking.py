@@ -86,7 +86,7 @@ def approach_pink():
 
         if detected:
             print(f"[PINK] Area={area:.1f}, dist={distance_cm:.1f} cm")
-            if distance_cm > 10:
+            if distance_cm > 15:
                 motorSpeed(50)
                 setServo(1500)
             else:
