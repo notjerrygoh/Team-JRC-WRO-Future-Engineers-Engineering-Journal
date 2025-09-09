@@ -122,11 +122,18 @@ stable_counter = 0
 
 try:
     while True:
-        frame = cv2.cvtColor(cam.capture_array()[::-1, :, :3], cv2.COLOR_RGB2BGR)
+        # --- try camera capture ---
+        try:
+            frame = cv2.cvtColor(cam.capture_array()[::-1, :, :3], cv2.COLOR_RGB2BGR)
+            camera_ok = True
+        except Exception:
+            camera_ok = False
+
         distance_cm = frontultrasonic.distance * 100
         current_time = time()
 
-        if lap_count < 12: 
+        # --- USE CAMERA NAVIGATION IF AVAILABLE ---
+        if camera_ok and lap_count < 12: 
             lap_count, on_orange_line, crossed = detect_orange(frame, on_orange_line, lap_count)
             motorSpeed(100)
 
@@ -184,9 +191,9 @@ try:
                 color_detected = "None"
             print("Detected:", color_detected)
             cv2.imshow("Color Detection", frame)
-            
-            
-        else: # Parking
+
+        # --- ULTRASONIC FALLBACK IF CAMERA FAILS ---
+        elif not camera_ok and lap_count < 12:
             if distance_cm < 30 and orange_sequence is None:
                 pwm.set_servo_pulsewidth(servo_pin, 1500)
                 left_dist = leftultrasonic.distance * 100
@@ -198,6 +205,13 @@ try:
                 else:
                     pwm.set_servo_pulsewidth(servo_pin, 1500)
                     motorSpeed(0)
+            else:
+                motorSpeed(100)
+
+        # --- AFTER 12 LAPS: PARKING ---
+        else: 
+            # --- PARKING CODE GOES HERE ---
+            pass
 
         if cv2.waitKey(10) & 0xFF == ord('q'):
             motorSpeed(0)
@@ -207,5 +221,3 @@ finally:
     motorSpeed(0)
     pwm.set_servo_pulsewidth(servo_pin, 0)
     cv2.destroyAllWindows()
-
-
