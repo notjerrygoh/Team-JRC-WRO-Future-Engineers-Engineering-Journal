@@ -113,7 +113,7 @@ def motorSpeed(speed):
         pi.set_PWM_dutycycle(M1A, 0)
         pi.set_PWM_dutycycle(M1B, 0)
 
-# --- MAIN LOOP ---
+
 lap_count = 0
 on_orange_line = False
 orange_sequence = None  
@@ -122,7 +122,7 @@ stable_counter = 0
 
 try:
     while True:
-        # --- try camera capture ---
+
         try:
             frame = cv2.cvtColor(cam.capture_array()[::-1, :, :3], cv2.COLOR_RGB2BGR)
             camera_ok = True
@@ -132,7 +132,7 @@ try:
         distance_cm = frontultrasonic.distance * 100
         current_time = time()
 
-        # --- USE CAMERA NAVIGATION IF AVAILABLE ---
+
         if camera_ok and lap_count < 12: 
             lap_count, on_orange_line, crossed = detect_orange(frame, on_orange_line, lap_count)
             motorSpeed(100)
@@ -141,7 +141,6 @@ try:
                 orange_sequence = ([(1500, 1.5), (2000, 1), (1500,0)], 0, current_time)
                 print(f"Lap {lap_count} completed")
 
-            # --- handle orange sequence ---
             if orange_sequence is not None:
                 steps, step_index, start_time = orange_sequence
                 pos, duration = steps[step_index]
@@ -154,7 +153,6 @@ try:
                     else:
                         orange_sequence = (steps, step_index, current_time)
 
-            # ----- TRAFFIC LIGHT DETECTION -----
             if orange_sequence is None:
                 red_area, green_area, red_label, green_label = traffic_lights(frame)
 
@@ -208,7 +206,6 @@ try:
             else:
                 motorSpeed(100)
 
-        # --- AFTER 12 LAPS: PARKING ---
         else: 
             # --- PARKING CODE GOES HERE ---
             pass
@@ -221,3 +218,4 @@ finally:
     motorSpeed(0)
     pwm.set_servo_pulsewidth(servo_pin, 0)
     cv2.destroyAllWindows()
+
