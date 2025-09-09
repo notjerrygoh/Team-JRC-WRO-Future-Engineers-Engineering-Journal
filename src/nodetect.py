@@ -125,9 +125,7 @@ try:
                     motorSpeed(0)
 
         else:
-            # --- NOTHING AFTER 12 LAPS (can add parking later) ---
-            motorSpeed(0)
-            pwm.set_servo_pulsewidth(servo_pin, 1500)
+            pass
 
         if cv2.waitKey(10) & 0xFF == ord('q'):
             motorSpeed(0)
@@ -137,3 +135,4 @@ finally:
     motorSpeed(0)
     pwm.set_servo_pulsewidth(servo_pin, 0)
     cv2.destroyAllWindows()
+
