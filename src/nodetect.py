@@ -14,10 +14,10 @@ offset = 200
 
 # Ultrasonic sensors
 factory = PiGPIOFactory()
-frontultrasonic = DistanceSensor(echo=27, trigger=22, max_distance=4, pin_factory=factory) #White (22) and Brown (27)
-leftultrasonic = DistanceSensor(echo=17, trigger=4, max_distance=4, pin_factory=factory) #Orange (17) and Blue (4)
-rightultrasonic = DistanceSensor(echo=5, trigger=6, max_distance=4, pin_factory=factory) #Green (6) and Blue (5)
-backultrasonic = DistanceSensor(echo=19, trigger=26, max_distance=4, pin_factory=factory) #white (19) and purple (26)q
+frontultrasonic = DistanceSensor(echo=27, trigger=22, max_distance=4, pin_factory=factory)  # White (22) and Brown (27)
+leftultrasonic = DistanceSensor(echo=17, trigger=4, max_distance=4, pin_factory=factory)   # Orange (17) and Blue (4)
+rightultrasonic = DistanceSensor(echo=5, trigger=6, max_distance=4, pin_factory=factory)   # Green (6) and Blue (5)
+backultrasonic = DistanceSensor(echo=19, trigger=26, max_distance=4, pin_factory=factory)  # White (19) and Purple (26)
 
 # Servo
 servo_pin = 16
@@ -82,26 +82,23 @@ def motorSpeed(speed):
 lap_count = 0
 on_orange_line = False
 orange_sequence = None  
-servo_sequence = None  
-stable_counter = 0  
 
 try:
     while True:
         frame = cv2.cvtColor(cam.capture_array()[::-1, :, :3], cv2.COLOR_RGB2BGR)
-        distance_cm = 1 * 100
+        distance_cm = frontultrasonic.distance * 100
         current_time = time()
 
-
         if lap_count < 12:
+            # --- ORANGE LINE DETECTION ---
             lap_count, on_orange_line, crossed = detect_orange(frame, on_orange_line, lap_count)
             motorSpeed(222)
 
-
             if crossed and orange_sequence is None:
-                orange_sequence = ([(1500, 0.0), ((1500 + offset), 4.1), (1500,0)], 0, current_time)
+                orange_sequence = ([(1500, 0.0), ((1500 + offset), 4.1), (1500, 0)], 0, current_time)
                 print(f"Lap {lap_count} completed")
 
-
+            # --- ORANGE SEQUENCE HANDLING ---
             if orange_sequence is not None:
                 steps, step_index, start_time = orange_sequence
                 pos, duration = steps[step_index]
@@ -114,42 +111,7 @@ try:
                     else:
                         orange_sequence = (steps, step_index, current_time)
 
-
-            if orange_sequence is None:
-                red_area, green_area, red_label, green_label = traffic_lights(frame)
-
-
-                if red_area > green_area or green_area > red_area:
-                    stable_counter += 1
-                else:
-                    stable_counter = 0
-
-                if servo_sequence is None and stable_counter >= 3:  # wait 3 frames
-                    pwm.set_servo_pulsewidth(servo_pin, 1500)
-                    color_detected = "None"
-                elif servo_sequence is not None:
-                    steps, step_index, start_time = servo_sequence
-                    pos, duration = steps[step_index]
-                    pwm.set_servo_pulsewidth(servo_pin, pos)
-
-                    if current_time - start_time >= duration:
-                        step_index += 1
-                        if step_index >= len(steps):
-                            servo_sequence = None
-                        else:
-                            servo_sequence = (steps, step_index, current_time)
-                    color_detected = red_label if red_area > green_area else green_label
-                else:
-                    color_detected = "None"
-            else:
-                color_detected = "None"
-            
-            if (color_detected != last_detected):
-                print("Detected:", color_detected)
-                last_detected = color_detected
-            # cv2.imshow("Color Detection", frame)
-
-
+            # --- ULTRASONIC BACKUP (crash avoidance) ---
             if distance_cm < 30 and orange_sequence is None:
                 pwm.set_servo_pulsewidth(servo_pin, 1500)
                 left_dist = leftultrasonic.distance * 100
@@ -162,24 +124,10 @@ try:
                     pwm.set_servo_pulsewidth(servo_pin, 1500)
                     motorSpeed(0)
 
-
         else:
-            detected, center_x = detect_parking(frame)
-            if detected:
-                width = frame.shape[1]
-                if center_x < width // 3:
-                    pwm.set_servo_pulsewidth(servo_pin, (1500 + offset))
-                elif center_x > (2 * width) // 3:
-                    pwm.set_servo_pulsewidth(servo_pin, (1500 - offset))
-                else:
-                    pwm.set_servo_pulsewidth(servo_pin, 1500)
-                    motorSpeed(100)
-                if distance_cm < 15:
-                    motorSpeed(0)
-                    pwm.set_servo_pulsewidth(servo_pin, 1500)
-            else:
-                motorSpeed(80)
-                pwm.set_servo_pulsewidth(servo_pin, 1500)
+            # --- NOTHING AFTER 12 LAPS (can add parking later) ---
+            motorSpeed(0)
+            pwm.set_servo_pulsewidth(servo_pin, 1500)
 
         if cv2.waitKey(10) & 0xFF == ord('q'):
             motorSpeed(0)
@@ -189,8 +137,3 @@ finally:
     motorSpeed(0)
     pwm.set_servo_pulsewidth(servo_pin, 0)
     cv2.destroyAllWindows()
-
-
-
-
-
