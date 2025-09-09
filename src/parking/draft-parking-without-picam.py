@@ -132,7 +132,7 @@ class GameFieldParkingMachine:
         if not moved:
             if sensors['left'] <= 5:
                 print("Left side too close - steering right and adjusting")
-                pwm.set_servo_pulsewidth(servo_pin, 1650)  # Turn right (25 degrees)
+                pwm.set_servo_pulsewidth(servo_pin, 1600)  # Turn right (20 degrees)
                 # Choose direction based on which has more space
                 if sensors['front'] > sensors['back']:
                     motorSpeed(40)  # Move forward
@@ -146,7 +146,7 @@ class GameFieldParkingMachine:
                 
             elif sensors['right'] <= 5:
                 print("Right side too close - steering left and adjusting")
-                pwm.set_servo_pulsewidth(servo_pin, 1350)  # Turn left (25 degrees)
+                pwm.set_servo_pulsewidth(servo_pin, 1400)  # Turn left (20 degrees)
                 # Choose direction based on which has more space
                 if sensors['front'] > sensors['back']:
                     motorSpeed(40)  # Move forward
@@ -249,10 +249,10 @@ class GameFieldParkingMachine:
             
             if elapsed < 2.0:  # Turn for 2 seconds
                 if turn_direction == "left":
-                    pwm.set_servo_pulsewidth(servo_pin, 1350)  # Turn left
+                    pwm.set_servo_pulsewidth(servo_pin, 1400)  # Turn left
                     print(f"Turning left toward parking (L:{left_dist:.1f} > R:{right_dist:.1f})")
                 else:
-                    pwm.set_servo_pulsewidth(servo_pin, 1650)  # Turn right
+                    pwm.set_servo_pulsewidth(servo_pin, 1600)  # Turn right
                     print(f"Turning right toward parking (R:{right_dist:.1f} > L:{left_dist:.1f})")
                 motorSpeed(35)  # Turning speed
             else:
