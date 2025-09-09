@@ -66,59 +66,6 @@ def detect_orange(frame, on_orange_line, lap_count):
 
     return lap_count, on_orange_line, crossed
 
-# Parking detection
-def detect_parking(frame):
-    hsvFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    pink_lower = np.array([140, 100, 100], np.uint8)
-    pink_upper = np.array([170, 255, 255], np.uint8)
-    pink_mask = cv2.inRange(hsvFrame, pink_lower, pink_upper)
-
-    contours, _ = cv2.findContours(pink_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    if contours:
-        largest = max(contours, key=cv2.contourArea)
-        if cv2.contourArea(largest) > 4000:
-            x, y, w, h = cv2.boundingRect(largest)
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 255), 2)
-            center_x = x + w // 2
-            return True, center_x
-    return False, None
-
-# Red and green detection
-def traffic_lights(frame):
-    hsvFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    # Red
-    red_lower1 = np.array([0, 150, 50], np.uint8)
-    red_upper1 = np.array([5, 255, 255], np.uint8)
-    red_lower2 = np.array([172, 150, 100], np.uint8)
-    red_upper2 = np.array([180, 255, 255], np.uint8)
-    red_mask = cv2.inRange(hsvFrame, red_lower1, red_upper1) | cv2.inRange(hsvFrame, red_lower2, red_upper2)
-
-    # Green
-    green_lower = np.array([35, 50, 50], np.uint8)
-    green_upper = np.array([85, 255, 255], np.uint8)
-    green_mask = cv2.inRange(hsvFrame, green_lower, green_upper)
-
-    kernel = np.ones((5, 5), "uint8")
-    red_mask = cv2.dilate(red_mask, kernel)
-    green_mask = cv2.dilate(green_mask, kernel)
-
-    def detect_and_label(mask, color_bgr, label):
-        contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        if not contours:
-            return 0, None
-        largest = max(contours, key=cv2.contourArea)
-        area = cv2.contourArea(largest)
-        if 20000 < area < 60000:
-            x, y, w, h = cv2.boundingRect(largest)
-            cv2.rectangle(frame, (x, y), (x + w, y + h), color_bgr, 2)
-            return area, label
-        return 0, None
-
-    red_area, red_label = detect_and_label(red_mask, (0, 0, 255), "Red")
-    green_area, green_label = detect_and_label(green_mask, (0, 255, 0), "Green")
-
-    return red_area, green_area, red_label, green_label
-
 # Motor speed
 def motorSpeed(speed):
     if speed < 0:
@@ -242,6 +189,7 @@ finally:
     motorSpeed(0)
     pwm.set_servo_pulsewidth(servo_pin, 0)
     cv2.destroyAllWindows()
+
 
 
 
