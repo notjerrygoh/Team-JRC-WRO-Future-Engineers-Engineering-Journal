@@ -163,10 +163,10 @@ try:
 
                 if servo_sequence is None and stable_counter >= 3: 
                     if red_area > green_area:
-                        servo_sequence = ([(2000,1), (1500,1), (1000,1), (1500,0)], 0, current_time + 0.1)
+                        servo_sequence = ([(2000,1), (1500,1), (1000,2), (1500,0)], 0, current_time + 0.1)
                         color_detected = red_label
                     elif green_area > red_area:
-                        servo_sequence = ([(1000,1), (1500,1), (2000,1), (1500,0)], 0, current_time + 0.1)
+                        servo_sequence = ([(1000,1), (1500,1), (2000,2), (1500,0)], 0, current_time + 0.1)
                         color_detected = green_label
                     else:
                         pwm.set_servo_pulsewidth(servo_pin, 1500)
@@ -216,5 +216,6 @@ finally:
     motorSpeed(0)
     pwm.set_servo_pulsewidth(servo_pin, 0)
     cv2.destroyAllWindows()
+
 
 
