@@ -131,6 +131,7 @@ def motorSpeed(speed):
 lap_count = 0
 on_orange_line = False
 orange_sequence = None  
+is_orange = 0
 
 try:
     while True:
@@ -140,7 +141,23 @@ try:
 
         if lap_count < 12:
             # --- ORANGE LINE DETECTION ---
-            lap_count, on_orange_line, crossed = detect_blue(frame, on_orange_line, lap_count)
+            
+            crossed = False
+            if is_orange == 0:
+                lap_count, on_orange_line, crossed = detect_orange(frame, on_orange_line, lap_count)
+                if lap_count == 1:
+                    is_orange = 1
+                    turn_amt = 200
+                else:
+                    lap_count, on_orange_line, crossed = detect_blue(frame, on_orange_line, lap_count)
+                    if lap_count == 1:
+                        is_orange = -1
+                        turn_amt = -200
+            elif is_orange == 1:
+                lap_count, on_orange_line, crossed = detect_orange(frame, on_orange_line, lap_count)
+            elif is_orange == -1:
+                lap_count, on_orange_line, crossed = detect_blue(frame, on_orange_line, lap_count)
+
             motorSpeed(base_speed)
 
             if crossed and orange_sequence is None:
