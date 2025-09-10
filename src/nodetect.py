@@ -121,7 +121,7 @@ try:
             motorSpeed(100)
 
             if crossed and orange_sequence is None:
-                orange_sequence = ([(1500 + offset, 0.0), ((1500 + offset + turn_amt), 2.5), (1500 + offset, 0)], 0, current_time)
+                orange_sequence = ([(1500 + offset, 0.0), ((1500 + offset + turn_amt), 2.6), (1500 + offset, 0)], 0, current_time)
                 print(f"Lap {lap_count} completed")
 
             # --- ORANGE SEQUENCE HANDLING ---

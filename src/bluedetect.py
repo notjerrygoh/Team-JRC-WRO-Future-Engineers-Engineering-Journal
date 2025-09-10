@@ -10,8 +10,10 @@ from picamera2 import Picamera2
 
 pi = pigpio.pi()
 last_detected = None
+
 turn_amt = -200
-offset = -50
+base_speed = 100
+offset = 25
 
 # Ultrasonic sensors
 factory = PiGPIOFactory()
@@ -38,6 +40,9 @@ M1B = 24
 pi.set_mode(M1A, pigpio.OUTPUT)
 pi.set_mode(M1B, pigpio.OUTPUT)
 
+# Time it takes to go from one orange line to the next
+# Used for measuring how weak the robot is
+orange_interval = -1
 last_orange_seen = -1
 # Orange line detection
 def detect_orange(frame, on_orange_line, lap_count):
@@ -52,13 +57,18 @@ def detect_orange(frame, on_orange_line, lap_count):
     roi = orange_mask[height-60:height, :]
     orange_pixels = cv2.countNonZero(roi)
 
+    ctime = time()
+
     crossed = False
     if orange_pixels > 1000:
-        if not on_orange_line and (time() - last_orange_seen) > 1.6:
+        if not on_orange_line and (ctime - last_orange_seen) > 1.6:
             lap_count += 1
             crossed = True
             on_orange_line = True
-            last_orange_seen = time()
+            if last_orange_seen != -1:
+                orange_interval = ctime - last_orange_seen
+                print("Orange interval: %.3f" % orange_interval)
+            last_orange_seen = ctime
     else:
         on_orange_line = False
 
@@ -131,10 +141,10 @@ try:
         if lap_count < 12:
             # --- ORANGE LINE DETECTION ---
             lap_count, on_orange_line, crossed = detect_blue(frame, on_orange_line, lap_count)
-            motorSpeed(100)
+            motorSpeed(base_speed)
 
             if crossed and orange_sequence is None:
-                orange_sequence = ([(1500 + offset, 0.0), ((1500 + offset + turn_amt), 3.01), (1500 + offset, 0)], 0, current_time)
+                orange_sequence = ([(1500 + offset, 0.0), ((1500 + offset + turn_amt), 2.63), (1500 + offset, 0)], 0, current_time)
                 print(f"Lap {lap_count} completed")
 
             # --- ORANGE SEQUENCE HANDLING ---
