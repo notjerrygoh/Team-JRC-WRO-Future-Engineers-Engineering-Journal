@@ -17,8 +17,6 @@ frontultrasonic = DistanceSensor(echo=5, trigger=6, max_distance=4, pin_factory=
 leftultrasonic = DistanceSensor(echo=17, trigger=4, max_distance=4, pin_factory=factory)
 rightultrasonic = DistanceSensor(echo=27, trigger=22, max_distance=4, pin_factory=factory)
 backultrasonic = DistanceSensor(echo=19, trigger=26, max_distance=4, pin_factory=factory)
-fullleftultrasonic = DistanceSensor(echo=20, trigger=21, max_distance=4, pin_factory=factory)
-fullrightultrasonic = DistanceSensor(echo=25, trigger=7, max_distance=4, pin_factory=factory)
 
 turn_amt = 300
 base_speed = 76
@@ -163,9 +161,6 @@ print("Waiting...")
 button.wait_for_press()
 print("Robot Started!")
 
-distances_left = []
-distances_right = []
-
 try:
     while True:
 
@@ -199,40 +194,7 @@ try:
             motorSpeed(base_speed)
 
             if crossed and orange_sequence is None:
-                is_inner = False
-                if is_orange == -1:
-                    if abs(distances_left[0] - distances_left[1]) < 30:
-                        is_inner = (distances_left[0] < 30)
-                    else:
-                        is_inner = (distances_right[0] > 30)
-                else:
-                    if abs(distances_left[0] - distances_left[1]) < 30
-                        is_inner = (distances_left[0] > 30)
-                    else:
-                        is_inner = (distances_right[0] < 30)
-
-                if is_inner:
-                    pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
-                    motorSpeed(base_speed)
-                    while frontultrasonic.distance > 0.15:
-                        sleep(0.1)
-
-                    pwm.set_servo_pulsewidth(servo_pin, 1500 + offset + turn_amt)
-                    motorSpeed(-base_speed)
-                    sleep(1.2)
-
-                    pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
-                    motorSpeed(base_speed)
-                else:
-                    pwm.set_servo_pulsewidth(servo_pin, 1500 + offset + 500)
-                    motorSpeed(base_speed)
-                    sleep(1.2)
-                    pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
-
-                distances_left = []
-                distances_right = []
-                        
-                # orange_sequence = ([(1500 + offset, 0), (1500 + offset + turn_amt, 1.7), (1500 + offset,0)], 0, current_time)
+                orange_sequence = ([(1500 + offset, 0), (1500 + offset + turn_amt, 1.7), (1500 + offset,0)], 0, current_time)
                 print(f"Lap {lap_count} completed")
 
             if orange_sequence is not None:
@@ -258,15 +220,9 @@ try:
                 if red_area > green_area:
                     servo_sequence = ([(1500 + offset + turn_amt, 1), (1500 + offset, 1), (1500 + offset - turn_amt, 1), (1500 + offset, 0)], 0, current_time + 0.1)
                     color_detected = red_label
-
-                    distances_left = [fullleftultrasonic.distance]
-                    distances_right = [fullrightultrasonic.distance]
                 elif green_area > red_area:
                     servo_sequence = ([(1500 + offset - turn_amt, 1), (1500 + offset, 1), (1500 + offset + turn_amt, 1), (1500 + offset, 0)], 0, current_time + 0.1)
                     color_detected = green_label
-
-                    distances_left = [fullleftultrasonic.distance]
-                    distances_right = [fullrightultrasonic.distance]
                 else:
                     pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
                     color_detected = "None"
@@ -280,8 +236,6 @@ try:
                     step_index += 1
                     if step_index >= len(steps):
                         servo_sequence = None
-                        distances_left += [fullleftultrasonic.distance]
-                        distances_right += [fullrightultrasonic.distance]
                     else:
                         servo_sequence = (steps, step_index, current_time)
                 color_detected = red_label if red_area > green_area else green_label
