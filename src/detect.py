@@ -17,17 +17,21 @@ leftultrasonic = DistanceSensor(echo=17, trigger=4, max_distance=4, pin_factory=
 rightultrasonic = DistanceSensor(echo=27, trigger=22, max_distance=4, pin_factory=factory)
 backultrasonic = DistanceSensor(echo=19, trigger=26, max_distance=4, pin_factory=factory)
 
+turn_amt = 300
+offset = -50
+
 # Servo
 servo_pin = 16
 pwm = pigpio.pi()
 pwm.set_mode(servo_pin, pigpio.OUTPUT)
 pwm.set_PWM_frequency(servo_pin, 50)
-pwm.set_servo_pulsewidth(servo_pin, 1500)  
+pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)  
 
 # Camera
 cam = Picamera2()
 cam.configure(cam.create_preview_configuration({"size": (640, 360)}))
 cam.start()
+
 
 # Motors
 M1A = 23
@@ -47,7 +51,7 @@ def detect_orange(frame, on_orange_line, lap_count):
     orange_pixels = cv2.countNonZero(roi)
 
     crossed = False
-    if orange_pixels > 1000:
+    if orange_pixels > 1100:
         if not on_orange_line:
             lap_count += 1
             crossed = True
@@ -103,10 +107,10 @@ def traffic_lights(frame):
 
 # Motor speed
 def motorSpeed(speed):
-    if speed > 0:
-        pi.set_PWM_dutycycle(M1A, speed)
+    if speed < 0:
+        pi.set_PWM_dutycycle(M1A, abs(speed))
         pi.set_PWM_dutycycle(M1B, 0)
-    elif speed < 0:
+    elif speed > 0:
         pi.set_PWM_dutycycle(M1A, 0)
         pi.set_PWM_dutycycle(M1B, abs(speed))
     else:
@@ -135,10 +139,10 @@ try:
 
         if camera_ok and lap_count < 12: 
             lap_count, on_orange_line, crossed = detect_orange(frame, on_orange_line, lap_count)
-            motorSpeed(100)
+            motorSpeed(200)
 
             if crossed and orange_sequence is None:
-                orange_sequence = ([(1500, 1.5), (2000, 1), (1500,0)], 0, current_time)
+                orange_sequence = ([(1500 + offset, 0), (1500 + offset + turn_amt, 1.6), (1500 + offset,0)], 0, current_time)
                 print(f"Lap {lap_count} completed")
 
             if orange_sequence is not None:
@@ -163,13 +167,13 @@ try:
 
                 if servo_sequence is None and stable_counter >= 3: 
                     if red_area > green_area:
-                        servo_sequence = ([(2000,1), (1500,1), (1000,2), (1500,0)], 0, current_time + 0.1)
+                        servo_sequence = ([(1500 + offset + turn_amt,1), (1500 + offset,1), (1500 + offset - turn_amt,2), (1500 + offset,0)], 0, current_time + 0.1)
                         color_detected = red_label
                     elif green_area > red_area:
-                        servo_sequence = ([(1000,1), (1500,1), (2000,2), (1500,0)], 0, current_time + 0.1)
+                        servo_sequence = ([(1500 + offset - turn_amt,1), (1500 + offset,1), (1500 + offset + turn_amt,2), (1500 + offset,0)], 0, current_time + 0.1)
                         color_detected = green_label
                     else:
-                        pwm.set_servo_pulsewidth(servo_pin, 1500)
+                        pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
                         color_detected = "None"
                 elif servo_sequence is not None:
                     steps, step_index, start_time = servo_sequence
@@ -192,15 +196,15 @@ try:
 
         elif not camera_ok and lap_count < 12:
             if distance_cm < 30 and orange_sequence is None:
-                pwm.set_servo_pulsewidth(servo_pin, 1500)
+                pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
                 left_dist = leftultrasonic.distance * 100
                 right_dist = rightultrasonic.distance * 100
                 if left_dist > right_dist and left_dist > 20:
-                    pwm.set_servo_pulsewidth(servo_pin, 1000)
+                    pwm.set_servo_pulsewidth(servo_pin, 1500 + offset - turn_amt)
                 elif right_dist > left_dist and right_dist > 20:
-                    pwm.set_servo_pulsewidth(servo_pin, 2000)
+                    pwm.set_servo_pulsewidth(servo_pin, 1500 + offset + turn_amt)
                 else:
-                    pwm.set_servo_pulsewidth(servo_pin, 1500)
+                    pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
                     motorSpeed(0)
             else:
                 motorSpeed(100)

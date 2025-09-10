@@ -2,7 +2,7 @@
 
 from gpiozero import DistanceSensor
 from gpiozero.pins.pigpio import PiGPIOFactory
-from time import time
+from time import time, sleep
 import pigpio
 import numpy as np
 import cv2
@@ -10,7 +10,8 @@ from picamera2 import Picamera2
 
 pi = pigpio.pi()
 last_detected = None
-offset = 200
+turn_amt = 200
+offset = -50
 
 # Ultrasonic sensors
 factory = PiGPIOFactory()
@@ -24,7 +25,7 @@ servo_pin = 16
 pwm = pigpio.pi()
 pwm.set_mode(servo_pin, pigpio.OUTPUT)
 pwm.set_PWM_frequency(servo_pin, 50)
-pwm.set_servo_pulsewidth(servo_pin, 1500)  # neutral start
+pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)  # neutral start
 
 # Camera
 cam = Picamera2()
@@ -37,8 +38,32 @@ M1B = 24
 pi.set_mode(M1A, pigpio.OUTPUT)
 pi.set_mode(M1B, pigpio.OUTPUT)
 
+def detect_blue(frame):
+    hsvFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+    blue_lower = np.array([100, 150, 50], np.uint8)
+    blue_upper = np.array([140, 255, 255], np.uint8)
+
+    blue_mask = cv2.inRange(hsvFrame, blue_lower, blue_upper)
+    detected = False
+
+    contours, _ = cv2.findContours(blue_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    for contour in contours:
+        area = cv2.contourArea(contour)
+        if area > 500:  # ignore small noise
+            x, y, w, h = cv2.boundingRect(contour)
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+            cv2.putText(frame, "Blue Detected", (x, y - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
+            detected = True
+
+    return detected
+
+last_orange_seen = -1
 # Orange line detection
 def detect_orange(frame, on_orange_line, lap_count):
+    global last_orange_seen
+
     hsvFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     orange_lower = np.array([5, 150, 150], np.uint8)
     orange_upper = np.array([20, 255, 255], np.uint8)
@@ -49,11 +74,12 @@ def detect_orange(frame, on_orange_line, lap_count):
     orange_pixels = cv2.countNonZero(roi)
 
     crossed = False
-    if orange_pixels > 2000:
-        if not on_orange_line:
+    if orange_pixels > 1000:
+        if not on_orange_line and (time() - last_orange_seen) > 1.6:
             lap_count += 1
             crossed = True
             on_orange_line = True
+            last_orange_seen = time()
     else:
         on_orange_line = False
 
@@ -69,7 +95,7 @@ def detect_orange(frame, on_orange_line, lap_count):
 # Motor speed
 def motorSpeed(speed):
     if speed < 0:
-        pi.set_PWM_dutycycle(M1A, speed)
+        pi.set_PWM_dutycycle(M1A, abs(speed))
         pi.set_PWM_dutycycle(M1B, 0)
     elif speed > 0:
         pi.set_PWM_dutycycle(M1A, 0)
@@ -92,10 +118,10 @@ try:
         if lap_count < 12:
             # --- ORANGE LINE DETECTION ---
             lap_count, on_orange_line, crossed = detect_orange(frame, on_orange_line, lap_count)
-            motorSpeed(200)
+            motorSpeed(100)
 
             if crossed and orange_sequence is None:
-                orange_sequence = ([(1500, 0.0), ((1500 + offset), 1.6), (1500, 0)], 0, current_time)
+                orange_sequence = ([(1500 + offset, 0.0), ((1500 + offset + turn_amt), 2.5), (1500 + offset, 0)], 0, current_time)
                 print(f"Lap {lap_count} completed")
 
             # --- ORANGE SEQUENCE HANDLING ---
@@ -113,19 +139,23 @@ try:
 
             # --- ULTRASONIC BACKUP (crash avoidance) ---
             if distance_cm < 30 and orange_sequence is None:
-                pwm.set_servo_pulsewidth(servo_pin, 1500)
+                pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
                 left_dist = leftultrasonic.distance * 100
                 right_dist = rightultrasonic.distance * 100
                 if left_dist > right_dist and left_dist > 20:
-                    pwm.set_servo_pulsewidth(servo_pin, (1500 + offset))
+                    pwm.set_servo_pulsewidth(servo_pin, (1500 + offset + turn_amt))
                 elif right_dist > left_dist and right_dist > 20:
-                    pwm.set_servo_pulsewidth(servo_pin, (1500 - offset))
+                    pwm.set_servo_pulsewidth(servo_pin, (1500 + offset - turn_amt))
                 else:
-                    pwm.set_servo_pulsewidth(servo_pin, 1500)
+                    pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
                     motorSpeed(0)
 
         else:
-            pass
+            pwm.set_servo_pulsewidth(servo_pin, 1500 + offset + turn_amt)
+            sleep(2.5)
+            pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
+            motorSpeed(0)
+            break
 
         if cv2.waitKey(10) & 0xFF == ord('q'):
             motorSpeed(0)
