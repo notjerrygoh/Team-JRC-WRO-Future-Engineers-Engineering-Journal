@@ -17,6 +17,8 @@ frontultrasonic = DistanceSensor(echo=5, trigger=6, max_distance=4, pin_factory=
 leftultrasonic = DistanceSensor(echo=17, trigger=4, max_distance=4, pin_factory=factory)
 rightultrasonic = DistanceSensor(echo=27, trigger=22, max_distance=4, pin_factory=factory)
 backultrasonic = DistanceSensor(echo=19, trigger=26, max_distance=4, pin_factory=factory)
+fullleftultrasonic = DistanceSensor(echo=20, trigger=21, max_distance=4, pin_factory=factory)
+fullrightultrasonic = DistanceSensor(echo=25, trigger=7, max_distance=4, pin_factory=factory)
 
 turn_amt = 300
 base_speed = 76
@@ -161,6 +163,9 @@ print("Waiting...")
 button.wait_for_press()
 print("Robot Started!")
 
+distances_left = []
+distances_right = []
+
 try:
     while True:
 
@@ -193,8 +198,50 @@ try:
 
             motorSpeed(base_speed)
 
-            if crossed and orange_sequence is None:
-                orange_sequence = ([(1500 + offset, 0), (1500 + offset + turn_amt, 3.3), (1500 + offset,0)], 0, current_time)
+            if crossed and orange_sequence is None and servo_sequence is None:
+                print("Detect line")
+                is_inner = False
+                if is_orange == -1:
+                    if abs(distances_left[0] - distances_left[1]) < 0.3:
+                        is_inner = not (distances_left[0] < 0.30)
+                    else:
+                        is_inner = not (distances_right[0] >= 0.30)
+                else:
+                    if abs(distances_left[0] - distances_left[1]) < 0.30:
+                        is_inner = not (distances_left[0] >= 0.30)
+                    else:
+                        is_inner = not (distances_right[0] < 0.30)
+
+                if is_inner:
+                    print("is inner")
+                    pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
+                    motorSpeed(base_speed)
+                    print("waiting for front ultrasonic")
+                    while frontultrasonic.distance > 0.15:
+                        print(frontultrasonic.distance)
+                        sleep(0.1)
+
+                    print("yay")
+
+                    pwm.set_servo_pulsewidth(servo_pin, 1500 + offset + turn_amt)
+                    motorSpeed(-base_speed)
+                    sleep(1.2)
+
+                    pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
+                    motorSpeed(base_speed)
+                else:
+                    print("is outer")
+                    pwm.set_servo_pulsewidth(servo_pin, 1500 + offset + turn_amt)
+                    motorSpeed(base_speed)
+                    sleep(1.2)
+                    pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
+
+                distances_left = []
+                distances_right = []
+            elif crossed and orange_sequence is None and servo_sequence is not None:
+                print(":p")
+                        
+                # orange_sequence = ([(1500 + offset, 0), (1500 + offset + turn_amt, 1.7), (1500 + offset,0)], 0, current_time)
                 print(f"Lap {lap_count} completed")
 
             if orange_sequence is not None:
@@ -216,29 +263,19 @@ try:
             else:
                 stable_counter = 0
 
-            if orange_sequence is None and servo_sequence is None:
-                left_dist = leftultrasonic.distance * 100
-                right_dist = rightultrasonic.distance * 100
-                print("Servo distances: ", int(left_dist), int(right_dist), end="")
-                if left_dist < 40:
-                    print(" (turn right)")
-                    pwm.set_servo_pulsewidth(servo_pin, (1500 + offset + 150))
-                    motorSpeed(100)
-                elif right_dist < 40:
-                    print(" (turn left)")
-                    pwm.set_servo_pulsewidth(servo_pin, (1500 + offset - 150))
-                    motorSpeed(100)
-                else:
-                    print("")
-                    pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
-
             if servo_sequence is None and stable_counter >= 3: 
                 if red_area > green_area:
-                    servo_sequence = ([(1500 + offset + turn_amt, 1), (1500 + offset, 0.0), (1500 + offset - turn_amt, 1), (1500 + offset, 0)], 0, current_time + 0.1)
+                    servo_sequence = ([(1500 + offset + turn_amt, 1), (1500 + offset, 0.3), (1500 + offset - turn_amt, 1), (1500 + offset, 0)], 0, current_time + 0.1)
                     color_detected = red_label
+
+                    distances_left = [fullleftultrasonic.distance]
+                    distances_right = [fullrightultrasonic.distance]
                 elif green_area > red_area:
-                    servo_sequence = ([(1500 + offset - turn_amt, 1), (1500 + offset, 0.0), (1500 + offset + turn_amt, 1), (1500 + offset, 0)], 0, current_time + 0.1)
+                    servo_sequence = ([(1500 + offset - turn_amt, 1), (1500 + offset, 0.3), (1500 + offset + turn_amt, 1), (1500 + offset, 0)], 0, current_time + 0.1)
                     color_detected = green_label
+
+                    distances_left = [fullleftultrasonic.distance]
+                    distances_right = [fullrightultrasonic.distance]
                 else:
                     pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
                     color_detected = "None"
@@ -250,24 +287,19 @@ try:
 
                 if current_time - start_time >= duration:
                     step_index += 1
+                    print("Increment step index", step_index, len(steps))
                     if step_index >= len(steps):
                         servo_sequence = None
-                        motorSpeed(-100)
-                        # sleep(0.5)
-                        motorSpeed(100)
+                        distances_left += [fullleftultrasonic.distance]
+                        distances_right += [fullrightultrasonic.distance]
+                        print(distances_left, distances_right)
                     else:
                         servo_sequence = (steps, step_index, current_time)
                 color_detected = red_label if red_area > green_area else green_label
             else:
                 color_detected = "None"
             print("Detected:", color_detected, stable_counter, red_area, green_area)
-
-
             # cv2.imshow("Color Detection", frame)
-
-        if cv2.waitKey(10) & 0xFF == ord('q'):
-            motorSpeed(0)
-            break
 
 finally:
     motorSpeed(0)
