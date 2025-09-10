@@ -1,4 +1,4 @@
-def align_center(left_target=56, right_target=52, tolerance=2):
+def align_center(left_target=56, right_target=52, tolerance=5):
     while True:
         left_dist = leftultrasonic.distance * 100
         right_dist = rightultrasonic.distance * 100
