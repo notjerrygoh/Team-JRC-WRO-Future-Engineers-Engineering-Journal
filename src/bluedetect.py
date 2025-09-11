@@ -1,33 +1,58 @@
 # Run sudo pigpiod in terminal before running code
 
-from gpiozero import DistanceSensor
+from gpiozero import Button, DistanceSensor
 from gpiozero.pins.pigpio import PiGPIOFactory
 from time import time, sleep
 import pigpio
 import numpy as np
 import cv2
 from picamera2 import Picamera2
+import sys
 
+button = Button(13, bounce_time=0.2, pull_up=True)
+last_click = 0
+
+def wait_for_start():
+    print("Waiting...")
+    button.wait_for_press()
+    print("Robot Started!")
+
+def check_stop():
+    global last_click
+    now = time()
+    if now - last_click < 1:   # second click within 1 sec
+        print("Double click → stopping program")
+        motorSpeed(0)
+        pwm.set_servo_pulsewidth(servo_pin, 0)
+        cv2.destroyAllWindows()
+        sys.exit(0)
+    else:
+        last_click = now
+
+button.when_pressed = check_stop
+
+# --- Wait for start ---
+wait_for_start()
+
+# --- Setup ---
 pi = pigpio.pi()
-last_detected = None
-
 turn_amt = -200
 base_speed = 100
 offset = 25
 
 # Ultrasonic sensors
 factory = PiGPIOFactory()
-frontultrasonic = DistanceSensor(echo=5, trigger=6, max_distance=4, pin_factory=factory)  # White (22) and Brown (27)
-leftultrasonic = DistanceSensor(echo=17, trigger=4, max_distance=4, pin_factory=factory)   # Orange (17) and Blue (4)
-rightultrasonic = DistanceSensor(echo=27, trigger=22, max_distance=4, pin_factory=factory)   # Green (6) and Blue (5)
-backultrasonic = DistanceSensor(echo=19, trigger=26, max_distance=4, pin_factory=factory)  # White (19) and Purple (26)
+frontultrasonic = DistanceSensor(echo=5, trigger=6, max_distance=4, pin_factory=factory)
+leftultrasonic = DistanceSensor(echo=17, trigger=4, max_distance=4, pin_factory=factory)
+rightultrasonic = DistanceSensor(echo=27, trigger=22, max_distance=4, pin_factory=factory)
+backultrasonic = DistanceSensor(echo=19, trigger=26, max_distance=4, pin_factory=factory)
 
 # Servo
 servo_pin = 16
 pwm = pigpio.pi()
 pwm.set_mode(servo_pin, pigpio.OUTPUT)
 pwm.set_PWM_frequency(servo_pin, 50)
-pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)  # neutral start
+pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
 
 # Camera
 cam = Picamera2()
@@ -35,19 +60,26 @@ cam.configure(cam.create_preview_configuration({"size": (640, 360)}))
 cam.start()
 
 # Motors
-M1A = 23
-M1B = 24
+M1A, M1B = 23, 24
 pi.set_mode(M1A, pigpio.OUTPUT)
 pi.set_mode(M1B, pigpio.OUTPUT)
 
-# Time it takes to go from one orange line to the next
-# Used for measuring how weak the robot is
-orange_interval = -1
+# --- Motor control ---
+def motorSpeed(speed):
+    if speed < 0:
+        pi.set_PWM_dutycycle(M1A, abs(speed))
+        pi.set_PWM_dutycycle(M1B, 0)
+    elif speed > 0:
+        pi.set_PWM_dutycycle(M1A, 0)
+        pi.set_PWM_dutycycle(M1B, abs(speed))
+    else:
+        pi.set_PWM_dutycycle(M1A, 0)
+        pi.set_PWM_dutycycle(M1B, 0)
+
+# --- Orange line detection ---
 last_orange_seen = -1
-# Orange line detection
 def detect_orange(frame, on_orange_line, lap_count):
     global last_orange_seen
-
     hsvFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     orange_lower = np.array([5, 150, 150], np.uint8)
     orange_upper = np.array([20, 255, 255], np.uint8)
@@ -58,35 +90,22 @@ def detect_orange(frame, on_orange_line, lap_count):
     orange_pixels = cv2.countNonZero(roi)
 
     ctime = time()
-
     crossed = False
     if orange_pixels > 1000:
         if not on_orange_line and (ctime - last_orange_seen) > 1.6:
             lap_count += 1
             crossed = True
             on_orange_line = True
-            if last_orange_seen != -1:
-                orange_interval = ctime - last_orange_seen
-                print("Orange interval: %.3f" % orange_interval)
             last_orange_seen = ctime
     else:
         on_orange_line = False
 
-    contours, _ = cv2.findContours(orange_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    if contours:
-        largest = max(contours, key=cv2.contourArea)
-        if cv2.contourArea(largest) > 300:
-            x, y, w, h = cv2.boundingRect(largest)
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 165, 255), 2)
-
     return lap_count, on_orange_line, crossed
 
-
+# --- Blue line detection ---
 last_blue_seen = -1
-# Orange line detection
 def detect_blue(frame, on_blue_line, lap_count):
     global last_blue_seen
-
     hsvFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     blue_lower = np.array([100, 150, 50], np.uint8)
     blue_upper = np.array([130, 255, 255], np.uint8)
@@ -106,28 +125,10 @@ def detect_blue(frame, on_blue_line, lap_count):
     else:
         on_blue_line = False
 
-    contours, _ = cv2.findContours(blue_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    if contours:
-        largest = max(contours, key=cv2.contourArea)
-        if cv2.contourArea(largest) > 300:
-            x, y, w, h = cv2.boundingRect(largest)
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 165, 255), 2)
-
     return lap_count, on_blue_line, crossed
 
-# Motor speed
-def motorSpeed(speed):
-    if speed < 0:
-        pi.set_PWM_dutycycle(M1A, abs(speed))
-        pi.set_PWM_dutycycle(M1B, 0)
-    elif speed > 0:
-        pi.set_PWM_dutycycle(M1A, 0)
-        pi.set_PWM_dutycycle(M1B, abs(speed))
-    else:
-        pi.set_PWM_dutycycle(M1A, 0)
-        pi.set_PWM_dutycycle(M1B, 0)
 
-
+# --- Main Loop ---
 lap_count = 0
 on_orange_line = False
 orange_sequence = None  
@@ -140,8 +141,6 @@ try:
         current_time = time()
 
         if lap_count < 12:
-            # --- ORANGE LINE DETECTION ---
-            
             crossed = False
             if is_orange == 0:
                 lap_count, on_orange_line, crossed = detect_orange(frame, on_orange_line, lap_count)
@@ -164,12 +163,10 @@ try:
                 orange_sequence = ([(1500 + offset, 0.0), ((1500 + offset + turn_amt), 2.63), (1500 + offset, 0)], 0, current_time)
                 print(f"Lap {lap_count} completed")
 
-            # --- ORANGE SEQUENCE HANDLING ---
             if orange_sequence is not None:
                 steps, step_index, start_time = orange_sequence
                 pos, duration = steps[step_index]
                 pwm.set_servo_pulsewidth(servo_pin, pos)
-
                 if current_time - start_time >= duration:
                     step_index += 1
                     if step_index >= len(steps):
@@ -177,18 +174,16 @@ try:
                     else:
                         orange_sequence = (steps, step_index, current_time)
 
-            # --- ULTRASONIC BACKUP (crash avoidance) ---
-            if distance_cm < 30 and orange_sequence is None:
+            if distance_cm < 10 and orange_sequence is None:
                 pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
                 left_dist = leftultrasonic.distance * 100
                 right_dist = rightultrasonic.distance * 100
-                if left_dist > right_dist and left_dist > 20:
-                    pwm.set_servo_pulsewidth(servo_pin, (1500 + offset + turn_amt))
-                elif right_dist > left_dist and right_dist > 20:
+                if left_dist > 10:
+                    pwm.set_servo_pulsewidth(servo_pin, (1500 + offset + turn_amt))'
+                    motorSpeed(100)
+                elif right_dist > 10:
                     pwm.set_servo_pulsewidth(servo_pin, (1500 + offset - turn_amt))
-                else:
-                    pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
-                    motorSpeed(0)
+                    motorSpeed(100)
 
         else:
             pwm.set_servo_pulsewidth(servo_pin, 1500 + offset + turn_amt)
@@ -205,4 +200,3 @@ finally:
     motorSpeed(0)
     pwm.set_servo_pulsewidth(servo_pin, 0)
     cv2.destroyAllWindows()
-
