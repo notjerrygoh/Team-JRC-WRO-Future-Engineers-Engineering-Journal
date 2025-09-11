@@ -10,24 +10,11 @@ from picamera2 import Picamera2
 import sys
 
 button = Button(13, bounce_time=0.2, pull_up=True)
-last_click = 0
 
 def wait_for_start():
     print("Waiting...")
     button.wait_for_press()
     print("Robot Started!")
-
-def check_stop():
-    global last_click
-    now = time()
-    if now - last_click < 1:   # second click within 1 sec
-        print("Double click → stopping program")
-        motorSpeed(0)
-        pwm.set_servo_pulsewidth(servo_pin, 0)
-        cv2.destroyAllWindows()
-        sys.exit(0)
-    else:
-        last_click = now
 
 button.when_pressed = check_stop
 
@@ -200,6 +187,13 @@ try:
             pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
             sleep(1.5)
             motorSpeed(0)
+            break
+
+        if button.is_pressed:
+            motorSpeed(0)
+            pwm.set_servo_pulsewidth(servo_pin, 1500)
+            sleep(0.1)
+            pwm.set_servo_pulsewidth(servo_pin, 0)
             break
 
         if cv2.waitKey(10) & 0xFF == ord('q'):
