@@ -18,7 +18,7 @@ rightultrasonic = DistanceSensor(echo=27, trigger=22, max_distance=4, pin_factor
 backultrasonic = DistanceSensor(echo=19, trigger=26, max_distance=4, pin_factory=factory)
 
 turn_amt = 300
-offset = -50
+offset = 0
 
 # Servo
 servo_pin = 16
@@ -94,7 +94,7 @@ def traffic_lights(frame):
             return 0, None
         largest = max(contours, key=cv2.contourArea)
         area = cv2.contourArea(largest)
-        if 30000 < area < 60000:  # stable area range
+        if 2000 < area < 60000:  # stable area range
             x, y, w, h = cv2.boundingRect(largest)
             cv2.rectangle(frame, (x, y), (x + w, y + h), color_bgr, 2)
             return area, label
@@ -139,10 +139,10 @@ try:
 
         if camera_ok and lap_count < 12: 
             lap_count, on_orange_line, crossed = detect_orange(frame, on_orange_line, lap_count)
-            motorSpeed(200)
+            motorSpeed(100)
 
             if crossed and orange_sequence is None:
-                orange_sequence = ([(1500 + offset, 0), (1500 + offset + turn_amt, 1.6), (1500 + offset,0)], 0, current_time)
+                orange_sequence = ([(1500 + offset, 0), (1500 + offset + turn_amt, 2), (1500 + offset,0)], 0, current_time)
                 print(f"Lap {lap_count} completed")
 
             if orange_sequence is not None:
@@ -157,42 +157,51 @@ try:
                     else:
                         orange_sequence = (steps, step_index, current_time)
 
-            if orange_sequence is None:
-                red_area, green_area, red_label, green_label = traffic_lights(frame)
+            red_area, green_area, red_label, green_label = traffic_lights(frame)
 
-                if red_area > green_area or green_area > red_area:
-                    stable_counter += 1
+            if red_area > green_area or green_area > red_area:
+                stable_counter += 1
+            else:
+                stable_counter = 0
+
+            if servo_sequence is None and stable_counter >= 3: 
+                if red_area > green_area:
+                    servo_sequence = ([(1500 + offset + turn_amt, 0.8), (1500 + offset, 0.2), (1500 + offset - turn_amt, 1.2), (1500 + offset, 0)], 0, current_time + 0.1)
+                    color_detected = red_label
+                elif green_area > red_area:
+                    servo_sequence = ([(1500 + offset - turn_amt, 0.8), (1500 + offset, 0.2), (1500 + offset + turn_amt, 1.2), (1500 + offset, 0)], 0, current_time + 0.1)
+                    color_detected = green_label
                 else:
-                    stable_counter = 0
-
-                if servo_sequence is None and stable_counter >= 3: 
-                    if red_area > green_area:
-                        servo_sequence = ([(1500 + offset + turn_amt,1), (1500 + offset,1), (1500 + offset - turn_amt,2), (1500 + offset,0)], 0, current_time + 0.1)
-                        color_detected = red_label
-                    elif green_area > red_area:
-                        servo_sequence = ([(1500 + offset - turn_amt,1), (1500 + offset,1), (1500 + offset + turn_amt,2), (1500 + offset,0)], 0, current_time + 0.1)
-                        color_detected = green_label
-                    else:
-                        pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
-                        color_detected = "None"
-                elif servo_sequence is not None:
-                    steps, step_index, start_time = servo_sequence
-                    pos, duration = steps[step_index]
-                    pwm.set_servo_pulsewidth(servo_pin, pos)
-
-                    if current_time - start_time >= duration:
-                        step_index += 1
-                        if step_index >= len(steps):
-                            servo_sequence = None
-                        else:
-                            servo_sequence = (steps, step_index, current_time)
-                    color_detected = red_label if red_area > green_area else green_label
-                else:
+                    pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
                     color_detected = "None"
+            elif servo_sequence is not None:
+                orange_sequence = None
+                steps, step_index, start_time = servo_sequence
+                pos, duration = steps[step_index]
+                pwm.set_servo_pulsewidth(servo_pin, pos)
+
+                if current_time - start_time >= duration:
+                    step_index += 1
+                    if step_index >= len(steps):
+                        servo_sequence = None
+                    else:
+                        servo_sequence = (steps, step_index, current_time)
+                color_detected = red_label if red_area > green_area else green_label
             else:
                 color_detected = "None"
             print("Detected:", color_detected)
-            cv2.imshow("Color Detection", frame)
+            #cv2.imshow("Color Detection", frame)
+
+            if distance_cm < 10 and orange_sequence is None:
+                pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
+                left_dist = leftultrasonic.distance * 100
+                right_dist = rightultrasonic.distance * 100
+                if left_dist > 10:
+                    pwm.set_servo_pulsewidth(servo_pin, (1500 + offset + turn_amt))
+                    motorSpeed(100)
+                elif right_dist > 10:
+                    pwm.set_servo_pulsewidth(servo_pin, (1500 + offset - turn_amt))
+                    motorSpeed(100)
 
         elif not camera_ok and lap_count < 12:
             if distance_cm < 30 and orange_sequence is None:

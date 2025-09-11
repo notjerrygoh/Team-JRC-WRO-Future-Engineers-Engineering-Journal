@@ -38,7 +38,7 @@ wait_for_start()
 pi = pigpio.pi()
 turn_amt = -200
 base_speed = 100
-offset = 25
+offset = 0
 
 # Ultrasonic sensors
 factory = PiGPIOFactory()
@@ -91,12 +91,14 @@ def detect_orange(frame, on_orange_line, lap_count):
 
     ctime = time()
     crossed = False
-    if orange_pixels > 1000:
+    if orange_pixels > 600:
         if not on_orange_line and (ctime - last_orange_seen) > 1.6:
             lap_count += 1
             crossed = True
             on_orange_line = True
             last_orange_seen = ctime
+        elif (ctime - last_orange_seen) <= 1.6:
+            print("Orange double count prevented")
     else:
         on_orange_line = False
 
@@ -107,7 +109,7 @@ last_blue_seen = -1
 def detect_blue(frame, on_blue_line, lap_count):
     global last_blue_seen
     hsvFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    blue_lower = np.array([100, 150, 50], np.uint8)
+    blue_lower = np.array([100, 150, 20], np.uint8)
     blue_upper = np.array([130, 255, 255], np.uint8)
     blue_mask = cv2.inRange(hsvFrame, blue_lower, blue_upper)
 
@@ -115,13 +117,17 @@ def detect_blue(frame, on_blue_line, lap_count):
     roi = blue_mask[height-60:height, :]
     blue_pixels = cv2.countNonZero(roi)
 
+    ctime = time()
+
     crossed = False
-    if blue_pixels > 1000:
-        if not on_blue_line and (time() - last_blue_seen) > 1.6:
+    if blue_pixels > 600:
+        if not on_blue_line and (ctime - last_blue_seen) > 1.6:
             lap_count += 1
             crossed = True
             on_blue_line = True
-            last_blue_seen = time()
+            last_blue_seen = ctime
+        elif (ctime - last_blue_seen) <= 1.6:
+            print("Blue double count prevented")
     else:
         on_blue_line = False
 
@@ -160,7 +166,7 @@ try:
             motorSpeed(base_speed)
 
             if crossed and orange_sequence is None:
-                orange_sequence = ([(1500 + offset, 0.0), ((1500 + offset + turn_amt), 2.63), (1500 + offset, 0)], 0, current_time)
+                orange_sequence = ([(1500 + offset, 0.0), ((1500 + offset + turn_amt), 1.60), (1500 + offset, 0)], 0, current_time)
                 print(f"Lap {lap_count} completed")
 
             if orange_sequence is not None:
@@ -174,21 +180,25 @@ try:
                     else:
                         orange_sequence = (steps, step_index, current_time)
 
-            if distance_cm < 10 and orange_sequence is None:
-                pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
+            if orange_sequence is None:
                 left_dist = leftultrasonic.distance * 100
                 right_dist = rightultrasonic.distance * 100
-                if left_dist > 10:
-                    pwm.set_servo_pulsewidth(servo_pin, (1500 + offset + turn_amt))'
+                print("Servo distances: ", int(left_dist), int(right_dist))
+                if left_dist < 32:
+                    pwm.set_servo_pulsewidth(servo_pin, (1500 + offset + 300))
                     motorSpeed(100)
-                elif right_dist > 10:
-                    pwm.set_servo_pulsewidth(servo_pin, (1500 + offset - turn_amt))
+                elif right_dist < 32:
+                    pwm.set_servo_pulsewidth(servo_pin, (1500 + offset - 300))
                     motorSpeed(100)
+                else:
+                    pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
+
 
         else:
             pwm.set_servo_pulsewidth(servo_pin, 1500 + offset + turn_amt)
             sleep(2.5)
             pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
+            sleep(1.5)
             motorSpeed(0)
             break
 
