@@ -7,7 +7,6 @@ import pigpio
 import numpy as np
 import cv2
 from picamera2 import Picamera2
-import sys
 
 button = Button(13, bounce_time=0.2, pull_up=True)
 
@@ -15,8 +14,6 @@ def wait_for_start():
     print("Waiting...")
     button.wait_for_press()
     print("Robot Started!")
-
-button.when_pressed = check_stop
 
 # --- Wait for start ---
 wait_for_start()

@@ -52,7 +52,7 @@ def clamp(d, m, x):
     return r
 
 def handle(inp):
-    global cspeed, cdir, crev, cbrake
+    global cspeed, cdir, crev, cbrake, coffset
 
     match inp:
         case " ":
@@ -75,6 +75,10 @@ def handle(inp):
             cspeed = 100
         case "5":
             cspeed = 255
+        case "[":
+            coffset -= 50
+        case "]":
+            coffset += 50
 
 
     cspeed = clamp(cspeed, 0, 255)
@@ -82,7 +86,7 @@ def handle(inp):
     sdir = ["left", "straight", "right"][cdir + 1]
     sbf = ["forwards", "backwards"][int(crev)]
     sbr = ["(no brake)", "(brake)"][int(cbrake)]
-    print(cspeed, "spd", sdir, sbf, sbr)
+    print(cspeed, "spd", sdir, sbf, sbr, coffset)
 
     update()
             

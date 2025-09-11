@@ -1,6 +1,6 @@
 # Run sudo pigpiod in terminal before running code
 
-from gpiozero import DistanceSensor
+from gpiozero import Button, DistanceSensor
 from gpiozero.pins.pigpio import PiGPIOFactory
 from time import time
 import pigpio
@@ -18,6 +18,7 @@ rightultrasonic = DistanceSensor(echo=27, trigger=22, max_distance=4, pin_factor
 backultrasonic = DistanceSensor(echo=19, trigger=26, max_distance=4, pin_factory=factory)
 
 turn_amt = 300
+base_speed = 100
 offset = 0
 
 # Servo
@@ -39,8 +40,22 @@ M1B = 24
 pi.set_mode(M1A, pigpio.OUTPUT)
 pi.set_mode(M1B, pigpio.OUTPUT)
 
+# Motor speed
+def motorSpeed(speed):
+    if speed < 0:
+        pi.set_PWM_dutycycle(M1A, abs(speed))
+        pi.set_PWM_dutycycle(M1B, 0)
+    elif speed > 0:
+        pi.set_PWM_dutycycle(M1A, 0)
+        pi.set_PWM_dutycycle(M1B, abs(speed))
+    else:
+        pi.set_PWM_dutycycle(M1A, 0)
+        pi.set_PWM_dutycycle(M1B, 0)
+
 # Orange line detection
+last_orange_seen = -1
 def detect_orange(frame, on_orange_line, lap_count):
+    global last_orange_seen
     hsvFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     orange_lower = np.array([5, 150, 150], np.uint8)
     orange_upper = np.array([20, 255, 255], np.uint8)
@@ -50,23 +65,49 @@ def detect_orange(frame, on_orange_line, lap_count):
     roi = orange_mask[height-60:height, :]
     orange_pixels = cv2.countNonZero(roi)
 
+    ctime = time()
     crossed = False
     if orange_pixels > 1100:
-        if not on_orange_line:
+        if not on_orange_line and (ctime - last_orange_seen) > 1.6:
             lap_count += 1
             crossed = True
             on_orange_line = True
+            last_orange_seen = ctime
+        elif (ctime - last_orange_seen) <= 1.6:
+            print("Orange double count prevented")
     else:
         on_orange_line = False
 
-    contours, _ = cv2.findContours(orange_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    if contours:
-        largest = max(contours, key=cv2.contourArea)
-        if cv2.contourArea(largest) > 300:
-            x, y, w, h = cv2.boundingRect(largest)
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 165, 255), 2)
-
     return lap_count, on_orange_line, crossed
+
+# --- Blue line detection ---
+last_blue_seen = -1
+def detect_blue(frame, on_blue_line, lap_count):
+    global last_blue_seen
+    hsvFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    blue_lower = np.array([100, 150, 20], np.uint8)
+    blue_upper = np.array([130, 255, 255], np.uint8)
+    blue_mask = cv2.inRange(hsvFrame, blue_lower, blue_upper)
+
+    height, width = blue_mask.shape
+    roi = blue_mask[height-60:height, :]
+    blue_pixels = cv2.countNonZero(roi)
+
+    ctime = time()
+
+    crossed = False
+    if blue_pixels > 1100:
+        if not on_blue_line and (ctime - last_blue_seen) > 1.6:
+            lap_count += 1
+            crossed = True
+            on_blue_line = True
+            last_blue_seen = ctime
+        elif (ctime - last_blue_seen) <= 1.6:
+            print("Blue double count prevented")
+    else:
+        on_blue_line = False
+
+    return lap_count, on_blue_line, crossed
 
 # Red and green detection
 def traffic_lights(frame):
@@ -94,7 +135,7 @@ def traffic_lights(frame):
             return 0, None
         largest = max(contours, key=cv2.contourArea)
         area = cv2.contourArea(largest)
-        if 2000 < area < 60000:  # stable area range
+        if 20000 < area < 60000:  # stable area range
             x, y, w, h = cv2.boundingRect(largest)
             cv2.rectangle(frame, (x, y), (x + w, y + h), color_bgr, 2)
             return area, label
@@ -105,24 +146,13 @@ def traffic_lights(frame):
 
     return red_area, green_area, red_label, green_label
 
-# Motor speed
-def motorSpeed(speed):
-    if speed < 0:
-        pi.set_PWM_dutycycle(M1A, abs(speed))
-        pi.set_PWM_dutycycle(M1B, 0)
-    elif speed > 0:
-        pi.set_PWM_dutycycle(M1A, 0)
-        pi.set_PWM_dutycycle(M1B, abs(speed))
-    else:
-        pi.set_PWM_dutycycle(M1A, 0)
-        pi.set_PWM_dutycycle(M1B, 0)
-
 
 lap_count = 0
 on_orange_line = False
 orange_sequence = None  
 servo_sequence = None  
 stable_counter = 0  
+is_orange = 0
 
 try:
     while True:
@@ -138,8 +168,23 @@ try:
 
 
         if camera_ok and lap_count < 12: 
-            lap_count, on_orange_line, crossed = detect_orange(frame, on_orange_line, lap_count)
-            motorSpeed(100)
+            crossed = False
+            if is_orange == 0:
+                lap_count, on_orange_line, crossed = detect_orange(frame, on_orange_line, lap_count)
+                if lap_count == 1:
+                    is_orange = 1
+                    turn_amt = 200
+                else:
+                    lap_count, on_orange_line, crossed = detect_blue(frame, on_orange_line, lap_count)
+                    if lap_count == 1:
+                        is_orange = -1
+                        turn_amt = -200
+            elif is_orange == 1:
+                lap_count, on_orange_line, crossed = detect_orange(frame, on_orange_line, lap_count)
+            elif is_orange == -1:
+                lap_count, on_orange_line, crossed = detect_blue(frame, on_orange_line, lap_count)
+
+            motorSpeed(base_speed)
 
             if crossed and orange_sequence is None:
                 orange_sequence = ([(1500 + offset, 0), (1500 + offset + turn_amt, 2), (1500 + offset,0)], 0, current_time)
@@ -189,19 +234,20 @@ try:
                 color_detected = red_label if red_area > green_area else green_label
             else:
                 color_detected = "None"
-            print("Detected:", color_detected)
+            print("Detected:", color_detected, stable_counter, red_area, green_area)
             #cv2.imshow("Color Detection", frame)
 
-            if distance_cm < 10 and orange_sequence is None:
+            left_dist = leftultrasonic.distance * 100
+            right_dist = rightultrasonic.distance * 100
+            # print("Servo distances: ", int(left_dist), int(right_dist))
+            if left_dist < 32:
+                pwm.set_servo_pulsewidth(servo_pin, (1500 + offset + 200))
+                motorSpeed(base_speed)
+            elif right_dist < 32:
+                pwm.set_servo_pulsewidth(servo_pin, (1500 + offset - 200))
+                motorSpeed(base_speed)
+            elif servo_sequence is None:
                 pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
-                left_dist = leftultrasonic.distance * 100
-                right_dist = rightultrasonic.distance * 100
-                if left_dist > 10:
-                    pwm.set_servo_pulsewidth(servo_pin, (1500 + offset + turn_amt))
-                    motorSpeed(100)
-                elif right_dist > 10:
-                    pwm.set_servo_pulsewidth(servo_pin, (1500 + offset - turn_amt))
-                    motorSpeed(100)
 
         elif not camera_ok and lap_count < 12:
             if distance_cm < 30 and orange_sequence is None:
@@ -216,7 +262,7 @@ try:
                     pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
                     motorSpeed(0)
             else:
-                motorSpeed(100)
+                motorSpeed(base_speed)
 
         else: 
             pass
