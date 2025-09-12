@@ -8,7 +8,7 @@ import numpy as np
 import cv2
 from picamera2 import Picamera2
 
-button = Button(13, bounce_time=0.2, pull_up=True)
+button = Button(13, bounce_time=0.04, pull_up=True)
 
 def wait_for_start():
     print("Waiting...")
@@ -23,6 +23,8 @@ pi = pigpio.pi()
 turn_amt = -200
 base_speed = 100
 offset = 0
+
+turn_time = 2.4
 
 # Ultrasonic sensors
 factory = PiGPIOFactory()
@@ -130,7 +132,7 @@ try:
         distance_cm = frontultrasonic.distance * 100
         current_time = time()
 
-        if lap_count < 12:
+        if lap_count < 12 or orange_sequence != None:
             crossed = False
             if is_orange == 0:
                 lap_count, on_orange_line, crossed = detect_orange(frame, on_orange_line, lap_count)
@@ -150,13 +152,29 @@ try:
             motorSpeed(base_speed)
 
             if crossed and orange_sequence is None:
-                orange_sequence = ([(1500 + offset, 0.0), ((1500 + offset + turn_amt), 1.60), (1500 + offset, 0)], 0, current_time)
+                orange_sequence = ([(1500 + offset, 0.0), ((1500 + offset + turn_amt), turn_time), (1500 + offset, 0)], 0, current_time)
                 print(f"Lap {lap_count} completed")
 
             if orange_sequence is not None:
                 steps, step_index, start_time = orange_sequence
                 pos, duration = steps[step_index]
-                pwm.set_servo_pulsewidth(servo_pin, pos)
+
+                left_dist = leftultrasonic.distance * 100
+                right_dist = rightultrasonic.distance * 100
+                
+                print("(OS) Servo distances: ", int(left_dist), int(right_dist), end="")
+                if left_dist < 40:
+                    print(" (turn right)")
+                    pwm.set_servo_pulsewidth(servo_pin, (1500 + offset + 150))
+                    motorSpeed(100)
+                elif right_dist < 40:
+                    print(" (turn left)")
+                    pwm.set_servo_pulsewidth(servo_pin, (1500 + offset - 150))
+                    motorSpeed(100)
+                else:
+                    print("")
+                    pwm.set_servo_pulsewidth(servo_pin, pos)
+
                 if current_time - start_time >= duration:
                     step_index += 1
                     if step_index >= len(steps):
@@ -167,22 +185,22 @@ try:
             if orange_sequence is None:
                 left_dist = leftultrasonic.distance * 100
                 right_dist = rightultrasonic.distance * 100
-                print("Servo distances: ", int(left_dist), int(right_dist))
-                if left_dist < 32:
-                    pwm.set_servo_pulsewidth(servo_pin, (1500 + offset + 300))
+                print("Servo distances: ", int(left_dist), int(right_dist), end="")
+                if left_dist < 40:
+                    print(" (turn right)")
+                    pwm.set_servo_pulsewidth(servo_pin, (1500 + offset + 150))
                     motorSpeed(100)
-                elif right_dist < 32:
-                    pwm.set_servo_pulsewidth(servo_pin, (1500 + offset - 300))
+                elif right_dist < 40:
+                    print(" (turn left)")
+                    pwm.set_servo_pulsewidth(servo_pin, (1500 + offset - 150))
                     motorSpeed(100)
                 else:
+                    print("")
                     pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
 
-
         else:
-            pwm.set_servo_pulsewidth(servo_pin, 1500 + offset + turn_amt)
-            sleep(2.5)
             pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
-            sleep(1.5)
+            sleep(1)
             motorSpeed(0)
             break
 

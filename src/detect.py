@@ -9,6 +9,7 @@ import cv2
 from picamera2 import Picamera2
 
 pi = pigpio.pi()
+button = Button(13, bounce_time=0.04, pull_up=True)
 
 # Ultrasonic sensors
 factory = PiGPIOFactory()
@@ -18,7 +19,7 @@ rightultrasonic = DistanceSensor(echo=27, trigger=22, max_distance=4, pin_factor
 backultrasonic = DistanceSensor(echo=19, trigger=26, max_distance=4, pin_factory=factory)
 
 turn_amt = 300
-base_speed = 100
+base_speed = 76
 offset = 0
 
 # Servo
@@ -129,6 +130,7 @@ def traffic_lights(frame):
     red_mask = cv2.dilate(red_mask, kernel)
     green_mask = cv2.dilate(green_mask, kernel)
 
+
     def detect_and_label(mask, color_bgr, label):
         contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         if not contours:
@@ -153,6 +155,11 @@ orange_sequence = None
 servo_sequence = None  
 stable_counter = 0  
 is_orange = 0
+
+# wait for start
+print("Waiting...")
+button.wait_for_press()
+print("Robot Started!")
 
 try:
     while True:
@@ -180,14 +187,14 @@ try:
                         is_orange = -1
                         turn_amt = -200
             elif is_orange == 1:
-                lap_count, on_orange_line, crossed = detect_orange(frame, on_orange_line, lap_count)
-            elif is_orange == -1:
                 lap_count, on_orange_line, crossed = detect_blue(frame, on_orange_line, lap_count)
+            elif is_orange == -1:
+                lap_count, on_orange_line, crossed = detect_orange(frame, on_orange_line, lap_count)
 
             motorSpeed(base_speed)
 
             if crossed and orange_sequence is None:
-                orange_sequence = ([(1500 + offset, 0), (1500 + offset + turn_amt, 2), (1500 + offset,0)], 0, current_time)
+                orange_sequence = ([(1500 + offset, 0), (1500 + offset + turn_amt, 1.7), (1500 + offset,0)], 0, current_time)
                 print(f"Lap {lap_count} completed")
 
             if orange_sequence is not None:
@@ -211,10 +218,10 @@ try:
 
             if servo_sequence is None and stable_counter >= 3: 
                 if red_area > green_area:
-                    servo_sequence = ([(1500 + offset + turn_amt, 0.8), (1500 + offset, 0.2), (1500 + offset - turn_amt, 1.2), (1500 + offset, 0)], 0, current_time + 0.1)
+                    servo_sequence = ([(1500 + offset + turn_amt, 1), (1500 + offset, 1), (1500 + offset - turn_amt, 1), (1500 + offset, 0)], 0, current_time + 0.1)
                     color_detected = red_label
                 elif green_area > red_area:
-                    servo_sequence = ([(1500 + offset - turn_amt, 0.8), (1500 + offset, 0.2), (1500 + offset + turn_amt, 1.2), (1500 + offset, 0)], 0, current_time + 0.1)
+                    servo_sequence = ([(1500 + offset - turn_amt, 1), (1500 + offset, 1), (1500 + offset + turn_amt, 1), (1500 + offset, 0)], 0, current_time + 0.1)
                     color_detected = green_label
                 else:
                     pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
@@ -235,8 +242,9 @@ try:
             else:
                 color_detected = "None"
             print("Detected:", color_detected, stable_counter, red_area, green_area)
-            #cv2.imshow("Color Detection", frame)
+            # cv2.imshow("Color Detection", frame)
 
+"""
             left_dist = leftultrasonic.distance * 100
             right_dist = rightultrasonic.distance * 100
             # print("Servo distances: ", int(left_dist), int(right_dist))
@@ -246,26 +254,9 @@ try:
             elif right_dist < 32:
                 pwm.set_servo_pulsewidth(servo_pin, (1500 + offset - 200))
                 motorSpeed(base_speed)
-            elif servo_sequence is None:
+            elif servo_sequence is None and orange_sequence is None:
                 pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
-
-        elif not camera_ok and lap_count < 12:
-            if distance_cm < 30 and orange_sequence is None:
-                pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
-                left_dist = leftultrasonic.distance * 100
-                right_dist = rightultrasonic.distance * 100
-                if left_dist > right_dist and left_dist > 20:
-                    pwm.set_servo_pulsewidth(servo_pin, 1500 + offset - turn_amt)
-                elif right_dist > left_dist and right_dist > 20:
-                    pwm.set_servo_pulsewidth(servo_pin, 1500 + offset + turn_amt)
-                else:
-                    pwm.set_servo_pulsewidth(servo_pin, 1500 + offset)
-                    motorSpeed(0)
-            else:
-                motorSpeed(base_speed)
-
-        else: 
-            pass
+"""
 
         if cv2.waitKey(10) & 0xFF == ord('q'):
             motorSpeed(0)
